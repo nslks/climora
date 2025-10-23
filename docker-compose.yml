@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: climora-mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: climora-influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: climora
+      DOCKER_INFLUXDB_INIT_PASSWORD: climora-password
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG:-climora-org}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET:-climora-bucket}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN:-local-dev-token}
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
+
+  data_collector:
+    image: python:3.11-slim
+    container_name: climora-data-collector
+    depends_on:
+      - mosquitto
+      - influxdb
+    env_file:
+      - .env
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: >
+      bash -c "
+      pip install --no-cache-dir -r services/data_collector/requirements.txt &&
+      python -m services.data_collector
+      "
+
+volumes:
+  mosquitto-data:
+  mosquitto-log:
+  influxdb-data:
+  influxdb-config:
+
