@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field
 
 
 class SensorMeasurement(BaseModel):
