@@ -14,18 +14,18 @@ services:
     image: influxdb:2.7
     container_name: climora-influxdb
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - "8086:8086"
     environment:
-      DOCKER_INFLUXDB_INIT_MODE: setup
-      DOCKER_INFLUXDB_INIT_USERNAME: climora
-      DOCKER_INFLUXDB_INIT_PASSWORD: climora-password
-      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG:-climora-org}
-      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET:-climora-bucket}
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN:-local-dev-token}
+      DOCKER_INFLUXDB_INIT_MODE: ${INFLUXDB_INIT_MODE}
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_INIT_USERNAME}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_INIT_PASSWORD}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_INIT_BUCKET}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_INIT_ORG}
     volumes:
       - influxdb-data:/var/lib/influxdb2
-      - influxdb-config:/etc/influxdb2
 
   data_collector:
     image: python:3.11-slim
