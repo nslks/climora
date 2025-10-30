@@ -13,7 +13,3 @@ class IMeasurementFetcher(ABC):
     @abstractmethod
     def startCollecting(self, handler: MessageHandler) -> None:
         """Begin retrieving payloads and forward them to the handler."""
-
-    @abstractmethod
-    def stopCollecting(self) -> None:
-        """Stop retrieving payloads and release resources."""

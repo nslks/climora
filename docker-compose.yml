@@ -19,34 +19,32 @@ services:
     ports:
       - "8086:8086"
     environment:
-      DOCKER_INFLUXDB_INIT_MODE: ${INFLUXDB_INIT_MODE}
-      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_INIT_USERNAME}
-      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_INIT_PASSWORD}
-      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_INIT_BUCKET}
-      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_INIT_ORG}
+      DOCKER_INFLUXDB_INIT_MODE: ${INFLUXDB_MODE}
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USERNAME}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG}
+      DOCKER_INFLUXDB_INIT_TOKEN: ${INFLUXDB_API_TOKEN}
     volumes:
       - influxdb-data:/var/lib/influxdb2
 
   data_collector:
-    image: python:3.11-slim
+    build:
+      context: ./services/data_collector
+      dockerfile: Dockerfile
     container_name: climora-data-collector
     depends_on:
       - mosquitto
       - influxdb
     env_file:
       - .env
-    working_dir: /app
+    restart: unless-stopped
     volumes:
-      - ./:/app
-    command: >
-      bash -c "
-      pip install --no-cache-dir -r services/data_collector/requirements.txt &&
-      python -m services.data_collector
-      "
+      - ./shared:/app/shared  # wichtig, damit das geteilte Modell importiert werden kann
+
 
 volumes:
   mosquitto-data:
   mosquitto-log:
   influxdb-data:
   influxdb-config:
-

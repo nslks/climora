@@ -14,9 +14,5 @@ class IMeasurementRepository(ABC):
         """Persist a single measurement."""
 
     @abstractmethod
-    def storeManyMeasurements(self, measurements: Iterable[SensorMeasurement]) -> None:
-        """Persist multiple measurements in a batch-oriented fashion."""
-
-    @abstractmethod
     def close(self) -> None:
         """Release all resources tied to the repository."""

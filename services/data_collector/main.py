@@ -1,44 +1,32 @@
 """Entrypoint for the Climora data collector service."""
 
-import logging
-import sys
-
-from services.data_collector.configuration.environment_loader import EnvironmentLoader
-from services.data_collector.fetchers.mqtt_fetcher import MqttMeasurementFetcher
-from services.data_collector.repositories.influx_repository import (
-    InfluxMeasurementRepository,
-)
-from services.data_collector.service import DataCollectorService
+from .configuration.load_config import load_runtime_config
+from .fetchers.mqtt_fetcher import MqttMeasurementFetcher
+from .fetchers.playground_fetcher import PlaygroundMeasurementFetcher
+from .repositories.influx_repository import InfluxMeasurementRepository
+from .services.data_collector_service import DataCollectorService
 
 
 def run() -> None:
-    """Configure logging, instantiate components, and start the collector."""
-    logging.basicConfig(
-        stream=sys.stdout,
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
-    logger = logging.getLogger("climora.data_collector")
-
-    config = EnvironmentLoader().load()
-
+    """Bootstrap the data collector application and start processing."""
+    config = load_runtime_config()
     repository = InfluxMeasurementRepository(
         url=config.influx_url,
         token=config.influx_token,
         organization=config.influx_organization,
         bucket=config.influx_bucket,
-        verify_ssl=config.influx_verify_ssl,
     )
-    fetcher = MqttMeasurementFetcher(
-        broker_host=config.mqtt_broker_host,
-        broker_port=config.mqtt_broker_port,
-        topic_filter=config.mqtt_topic_filter,
-        client_identifier=config.mqtt_client_identifier,
-        logger=logger,
-    )
+
+    if config.playground_mode:
+        fetcher = PlaygroundMeasurementFetcher(interval_seconds=config.playground_interval_seconds)
+    else:
+        fetcher = MqttMeasurementFetcher(broker_host=config.mqtt_broker_host, broker_port=config.mqtt_broker_port, topic_filter=config.mqtt_topic_filter, client_identifier=config.mqtt_client_identifier)
+
     service = DataCollectorService(
         fetcher=fetcher,
-        repository=repository,
-        logger=logger,
+        repository=repository
     )
     service.start()
+
+
+run()

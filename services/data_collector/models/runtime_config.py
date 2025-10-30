@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 
-
 @dataclass(frozen=True)
 class RuntimeConfig:
     """Holds configuration values for interacting with external systems."""
@@ -16,4 +15,5 @@ class RuntimeConfig:
     influx_organization: str
     influx_bucket: str
     influx_verify_ssl: bool
-
+    playground_mode: bool
+    playground_interval_seconds: float
