@@ -1,6 +1,8 @@
 """Runtime configuration objects for the data collector."""
 
 from dataclasses import dataclass
+from typing import Optional
+
 
 @dataclass(frozen=True)
 class RuntimeConfig:
@@ -10,10 +12,8 @@ class RuntimeConfig:
     mqtt_broker_port: int
     mqtt_topic_filter: str
     mqtt_client_identifier: str
-    influx_url: str
-    influx_token: str
-    influx_organization: str
-    influx_bucket: str
-    influx_verify_ssl: bool
+    db_service_base_url: str
+    db_service_api_key: Optional[str]
+    db_service_timeout_seconds: float
     playground_mode: bool
     playground_interval_seconds: float

@@ -30,8 +30,9 @@ climora/
 ├── .env                        # Gemeinsame Umgebungsvariablen
 │
 ├── services/
-│   ├── data_collector/         # Liest MQTT-Nachrichten und schreibt in InfluxDB
-│   ├── api/                    # FastAPI REST-Interface zur Abfrage & Analyse
+│   ├── data_collector/         # Liest MQTT und delegiert Messwerte an den DB-Service
+│   ├── api/                    # FastAPI REST-Interface für Clients (liest vom DB-Service)
+│   ├── db_service/             # FastAPI-Service als einziger Influx-Zugriffspunkt
 │   ├── processor/              # Analysen, Alerts, ML
 │
 ├── shared/                     # Gemeinsame Codebasis (Models, Utils, Config)
@@ -52,8 +53,9 @@ climora/
 
 | Service | Beschreibung | Technologie |
 |----------|---------------|--------------|
-| **data_collector** | Abonniert MQTT-Topics und schreibt Messwerte in InfluxDB | Python (paho-mqtt, influxdb-client) |
-| **api** | Bietet REST-Endpunkte zum Abrufen und Visualisieren der Daten | FastAPI |
+| **data_collector** | Abonniert MQTT-Topics und sendet validierte Messwerte an den DB-Service | Python (paho-mqtt, httpx) |
+| **db_service** | Exponiert interne REST-Endpunkte und ist alleiniger Besitzer der Influx-Anbindung | FastAPI, InfluxDB Client |
+| **api** | Bietet REST-Endpunkte für externe Clients und befragt den DB-Service | FastAPI |
 | **influxdb** | Zeitreihendatenbank für alle Messwerte | InfluxDB v2 |
 | **mosquitto** | MQTT Broker für Sensordaten | Eclipse Mosquitto |
 | **processor** | Analysen, Alerts oder Forecasting | Python |
@@ -70,14 +72,23 @@ climora/
 ### Beispiel `.env`
 
 ```bash
+# MQTT
 MQTT_BROKER=mosquitto
 MQTT_PORT=1883
-MQTT_TOPIC=sensor/temperature
-INFLUX_URL=http://influxdb:8086
-INFLUX_TOKEN=my-token
-INFLUX_ORG=my-org
-INFLUX_BUCKET=sensor_data
-API_PORT=8000
+MQTT_TOPIC=sensor/# 
+MQTT_CLIENT_ID=climora-data-collector
+
+# InfluxDB (nur vom DB-Service genutzt)
+INFLUXDB_URL=http://influxdb:8086
+INFLUXDB_API_TOKEN=my-token
+INFLUXDB_ORG=my-org
+INFLUXDB_BUCKET=sensor_data
+INFLUX_VERIFY_SSL=false
+
+# Interner DB-Service
+DB_SERVICE_URL=http://db_service:8002
+DB_SERVICE_API_KEY=internal-token
+DB_SERVICE_TIMEOUT_SECONDS=5
 ```
 
 ### Starten
@@ -93,6 +104,7 @@ docker compose up --build
 | MQTT Broker | mqtt://localhost:1883 |
 | InfluxDB UI | http://localhost:8086 |
 | API | http://localhost:8000 |
+| DB-Service | http://localhost:8002 |
 
 ---
 
@@ -104,14 +116,14 @@ docker compose up --build
 2. **Mosquitto (Broker)**  
    → empfängt & verteilt Nachricht an Subscriber.
 
-3. **MQTT → Influx-Service**  
-   → subscribed auf `sensor/#`, schreibt Messwert in InfluxDB.
+3. **Data Collector → DB-Service**  
+   → validiert Payloads und sendet sie per REST an den DB-Service.
 
-4. **InfluxDB**  
-   → speichert Zeitreihen (Wert, Zeit, Raum).
+4. **DB-Service**  
+   → persistiert Messwerte in InfluxDB und stellt interne Endpunkte bereit.
 
 5. **API-Service**  
-   → liest Influx-Daten aus, aggregiert oder visualisiert sie.
+   → konsumiert ausschließlich den DB-Service und bietet öffentliche REST-Endpunkte.
 
 6. **Processor**
    → TODO
@@ -123,4 +135,3 @@ docker compose up --build
 - 🔔 **Benachrichtigungssystem:** Warnung bei kritischer Luftfeuchtigkeit  
 - 📊 **Forecasting:** Vorhersage von Schimmelrisiko (ML)  
 - 🌐 **Frontend:** Echtzeit-Dashboard (React/Vue)  
-

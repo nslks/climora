@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 from typing import Dict
 
@@ -11,6 +12,8 @@ from shared.models.sensor_measurement import SensorMeasurement
 
 class DataCollectorService:
     """Coordinates fetching raw payloads, validation, and persistence."""
+
+    _logger = logging.getLogger(__name__)
 
     def __init__(self, *, fetcher: IMeasurementFetcher, repository: IMeasurementRepository) -> None:
         self._measurement_fetcher = fetcher
@@ -33,7 +36,10 @@ class DataCollectorService:
             measurement = self._buildMeasurement(payload)
         except ValueError:
             return
-        self._repository.storeMeasurement(measurement)
+        try:
+            self._repository.storeMeasurement(measurement)
+        except RuntimeError:
+            self._logger.exception("Failed to store measurement via DB service.")
 
     def _buildMeasurement(self, payload: bytes) -> SensorMeasurement:
         decoded_payload = self._decodePayload(payload)

@@ -28,6 +28,21 @@ services:
     volumes:
       - influxdb-data:/var/lib/influxdb2
 
+  db_service:
+    build:
+      context: ./services/db_service
+      dockerfile: Dockerfile
+    container_name: climora-db-service
+    depends_on:
+      - influxdb
+    env_file:
+      - .env
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./shared:/app/shared
+
   data_collector:
     build:
       context: ./services/data_collector
@@ -35,7 +50,7 @@ services:
     container_name: climora-data-collector
     depends_on:
       - mosquitto
-      - influxdb
+      - db_service
     env_file:
       - .env
     restart: unless-stopped

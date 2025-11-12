@@ -1,4 +1,3 @@
 paho-mqtt
-influxdb-client
 pydantic
-
+httpx==0.27.2
