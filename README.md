@@ -97,6 +97,18 @@ DB_SERVICE_TIMEOUT_SECONDS=5
 docker compose up --build
 ```
 
+### Entwickeln mit Dev Containern
+
+Wer VS Code oder eine andere Dev-Container-kompatible IDE nutzt, kann pro Service einen eigenen Container öffnen:
+
+| Devcontainer | Pfad | Zweck |
+|--------------|------|-------|
+| API Service | `services/api/.devcontainer/devcontainer.json` | FastAPI-Entwicklung, pytest-Konfiguration |
+| Data Collector | `services/data_collector/.devcontainer/devcontainer.json` | MQTT-Collector schnell testen |
+| DB Service | `services/db_service/.devcontainer/devcontainer.json` | Single source of truth für Influx-Anbindung |
+
+Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jeweiligen `requirements.txt` und forwarded relevante Ports (8000 bzw. 8002).
+
 ### Services erreichbar unter
 
 | Service | Adresse |
