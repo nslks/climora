@@ -1,7 +1,8 @@
 .DS_Store
 .vscode/
 .env
-infrastructure/influxdb/influxsecrets
+infrastructure/secrets/influx.env
+infrastructure/grafana/grafanasecrets
 agents.md
 
 __pycache__/

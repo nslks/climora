@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  grafana:
+    image: grafana/grafana:10.4.3
+    container_name: climora-grafana
+    restart: unless-stopped
+    env_file:
+      - ./grafanasecrets
+      - ../secrets/influx.env
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./provisioning/datasources:/etc/grafana/provisioning/datasources
+
+volumes:
+  grafana-data:

@@ -24,7 +24,7 @@ services:
       - influxdb
     env_file:
       - .env
-      - ./infrastructure/influxdb/influxsecrets
+      - ./infrastructure/secrets/influx.env
     restart: unless-stopped
     ports:
       - "8002:8002"
@@ -45,9 +45,17 @@ services:
     volumes:
       - ./shared:/app/shared  # wichtig, damit das geteilte Modell importiert werden kann
 
+  grafana:
+    extends:
+      file: ./infrastructure/grafana/docker-compose.grafana.yml
+      service: grafana
+    depends_on:
+      - influxdb
+
 
 volumes:
   mosquitto-data:
   mosquitto-log:
   influxdb-data:
   influxdb-config:
+  grafana-data:
