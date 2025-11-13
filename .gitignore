@@ -1,6 +1,7 @@
 .DS_Store
 .vscode/
 .env
+infrastructure/influxdb/influxsecrets
 agents.md
 
 __pycache__/
