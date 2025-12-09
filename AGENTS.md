@@ -37,6 +37,7 @@ Der Agent darf nicht:
 - Sicherheitskritische Dateien ändern (.env, Secrets, Keys)
 - Git-Operationen durchführen
 - Infrastruktur-Definitionen verändern ohne explizite Erlaubnis
+- Jede Idee die ich habe super finden
 
 ## 4. Workspace-Regeln
 
@@ -44,12 +45,14 @@ Der Agent darf nicht:
 - Tests ausschließlich unter tests/
 - Keine Änderungen außerhalb ohne Freigabe
 - Änderungen an Dockerfiles oder CI nur nach Nachfrage
+- Ideen und Features kritisch hinterfragen
 
 ## 5. Arbeitsprozess (Plan--Act--Reflect)
 
 ### Plan
 
 - Liste der geplanten Dateiänderungen
+- Wunsch kritisch hinterfragen
 - Inhalte/Funktionen
 - Seiteneffekte
 - Schrittstruktur
