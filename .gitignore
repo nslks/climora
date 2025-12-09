@@ -3,7 +3,6 @@
 .env
 infrastructure/secrets/influx.env
 infrastructure/grafana/grafanasecrets
-agents.md
 
 __pycache__/
 *.py[cod]
