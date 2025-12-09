@@ -33,6 +33,7 @@ climora/
 │   ├── data_collector/         # Liest MQTT und delegiert Messwerte an den DB-Service
 │   ├── api/                    # FastAPI REST-Interface für Clients (liest vom DB-Service)
 │   ├── db_service/             # FastAPI-Service als einziger Influx-Zugriffspunkt
+│   ├── ai_service/             # FastAPI-Service für Heiz- und Lüftungsempfehlungen
 │   ├── processor/              # Analysen, Alerts, ML
 │
 ├── shared/                     # Gemeinsame Codebasis (Models, Utils, Config)
@@ -55,6 +56,8 @@ climora/
 |----------|---------------|--------------|
 | **data_collector** | Abonniert MQTT-Topics und sendet validierte Messwerte an den DB-Service | Python (paho-mqtt, httpx) |
 | **db_service** | Exponiert interne REST-Endpunkte und ist alleiniger Besitzer der Influx-Anbindung | FastAPI, InfluxDB Client |
+| **ai_service** | Berechnet Empfehlungen zum Heizen oder Lüften anhand aktueller Messwerte | FastAPI |
+| **ollama** | Lokale LLM-Inferenz als Backend für KI-Empfehlungen | Ollama |
 | **api** | Bietet REST-Endpunkte für externe Clients und befragt den DB-Service | FastAPI |
 | **influxdb** | Zeitreihendatenbank für alle Messwerte | InfluxDB v2 |
 | **mosquitto** | MQTT Broker für Sensordaten | Eclipse Mosquitto |
@@ -89,6 +92,11 @@ INFLUX_VERIFY_SSL=false
 DB_SERVICE_URL=http://db_service:8002
 DB_SERVICE_API_KEY=internal-token
 DB_SERVICE_TIMEOUT_SECONDS=5
+
+# AI Service / Ollama
+AI_SERVICE_OLLAMA_BASE_URL=http://ollama:11434
+AI_SERVICE_OLLAMA_MODEL=llama3.1:8b
+
 ```
 
 ### Starten
@@ -96,6 +104,17 @@ DB_SERVICE_TIMEOUT_SECONDS=5
 ```bash
 docker compose up --build
 ```
+
+### Ollama vorbereiten
+
+Nach dem ersten Start muss das gewünschte Modell lokal geladen werden:
+
+```bash
+docker compose up -d ollama
+docker compose exec ollama ollama pull llama3.1:8b
+```
+
+Der AI-Service erreicht die lokale Instanz anschließend unter `http://ollama:11434`.
 
 ### Entwickeln mit Dev Containern
 
@@ -117,6 +136,8 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 | InfluxDB UI | http://localhost:8086 |
 | API | http://localhost:8000 |
 | DB-Service | http://localhost:8002 |
+| AI-Service | http://localhost:8003 |
+| Ollama | http://localhost:11434 |
 
 ---
 

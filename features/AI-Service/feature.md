@@ -48,7 +48,7 @@ Der neue AI-Service soll anhand von Temperatur- und Luftfeuchtigkeitswerten konk
    - Standard-Dependencies (FastAPI, uvicorn, pytest) deklarieren.
 3. **Domain-Logik**
    - Interface `IRecommendationEngine` + konkrete `RuleBasedRecommendationEngine`.
-   - Erstellen von einstellbaren Schwellwerten (Config oder Settings).
+   - Definieren fester Heuristikgrenzen direkt im Code (später ersetzbar durch lernende Modelle).
 4. **API Endpoint**
    - Router + Dependency-Injection für Engine.
    - Response strukturieren (z. B. Aktion, Intensität, reason, timestamp).
@@ -72,11 +72,19 @@ Der neue AI-Service soll anhand von Temperatur- und Luftfeuchtigkeitswerten konk
 5. **Antwortzeiten/Timeouts**  
    Startannahme: Service-Timeout 2 s für interne Aufrufe. Wir loggen die Dauer und passen den Wert an, sobald klar ist, wie der API-Service die Antwort verwendet.
 6. **Konfigurierbarkeit**  
-   Schwellwerte werden über Settings/Umgebungsvariablen konfiguriert (`AI_SERVICE_MAX_HUMIDITY`, `AI_SERVICE_MIN_TEMPERATURE`, …). Später kann ein Admin-Endpoint folgen, aktuell reicht `.env`.
+   Schwellwerte liegen als Heuristiken direkt in der Engine. Sobald reale ML-Modelle vorhanden sind, kann die Engine ausgetauscht oder um externe Konfiguration ergänzt werden.
 7. **Modellstrategie**  
-   Erste Iteration bleibt regelbasiert (vollständig lokal, keine Abhängigkeit von OpenAI oder Fremd-APIs). Schnittstelle `IRecommendationEngine` erlaubt später den Austausch gegen ein internes Modell oder – falls irgendwann gewünscht – einen Proxy zu GPT, sobald Datenschutz/Netzwerk geklärt sind.
+   Lokale Regel-Engine bildet die Basis. Perspektivisch können wir eine lokale KI (z. B. Ollama oder ein eigenes PyTorch-Modell) als zusätzlichen `IRecommendationEngine` einhängen. Keine externen API-Aufrufe notwendig.
 
 ## Noch offene Punkte
 
 - Sobald klar ist, wie die API-Service-Oberfläche die Empfehlung verwendet (nur Anzeige vs. Automatisierung), können Timeout-/Retry-Strategien nachgeschärft werden.
 - Falls zukünftige Versionen Messwerte selbst laden sollen, benötigen wir einen Client zum DB-Service sowie Authn/Rate-Limits.
+- Für lokale KI (z. B. Ollama) würde ein eigener Microservice oder Prozess auf dem Host laufen (`ollama serve` → REST `POST /api/generate`). Wir können dann eine `OllamaRecommendationEngine` bauen, die diesen lokalen Endpoint anspricht. Kosten: keine externen Tokens, lediglich Host-Ressourcen. Bis dahin bleibt die Regel-Engine aktiv.
+
+## Lokale KI (Ollama) – grober Ablauf
+1. **Ollama bereitstellen:** Auf dem Host oder per Container `ollama serve` laufen lassen und ein Modell (z. B. `ollama pull llama3`) vorbereiten.
+2. **Service-zu-Ollama-Kommunikation:** Innerhalb des AI-Service einen Client implementieren, der `POST http://ollama:11434/api/generate` mit Prompt + JSON-Instruktion aufruft.
+3. **Engine-Austausch:** `RecommendationService` injiziert dann eine `OllamaRecommendationEngine`, die das HTTP-Ergebnis in unsere DTOs mappt. Bei Fehlern behalten wir die bestehende rule-based Engine als Fallback.
+4. **Konfiguration:** Zielhost/Port und Modellname werden via `.env` (z. B. `AI_SERVICE_OLLAMA_BASE_URL`, `AI_SERVICE_OLLAMA_MODEL`) gesetzt; weiterhin keine externen Kosten.
+5. **Ressourcenbedarf:** Modelle laufen auf CPU oder GPU des Hosts. Für Dev-Zwecke reichen leichte Modelle (z. B. `llama3.1:8b`), produktiv könnte ein dediziertes Inferenz-Backend folgen.

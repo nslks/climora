@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  ollama:
+    image: ollama/ollama:0.3.12
+    container_name: climora-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+
+volumes:
+  ollama-data:

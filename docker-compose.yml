@@ -15,6 +15,11 @@ services:
       file: ./infrastructure/influxdb/docker-compose.influx.yml
       service: influxdb
 
+  ollama:
+    extends:
+      file: ./infrastructure/ollama/docker-compose.ollama.yml
+      service: ollama
+
   db_service:
     build:
       context: ./services/db_service
@@ -28,6 +33,22 @@ services:
     restart: unless-stopped
     ports:
       - "8002:8002"
+    volumes:
+      - ./shared:/app/shared
+
+  ai_service:
+    build:
+      context: ./services/ai_service
+      dockerfile: Dockerfile
+    container_name: climora-ai-service
+    depends_on:
+      - db_service
+      - ollama
+    env_file:
+      - .env
+    restart: unless-stopped
+    ports:
+      - "8003:8003"
     volumes:
       - ./shared:/app/shared
 
@@ -59,3 +80,4 @@ volumes:
   influxdb-data:
   influxdb-config:
   grafana-data:
+  ollama-data:
