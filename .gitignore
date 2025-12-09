@@ -4,6 +4,8 @@
 infrastructure/secrets/influx.env
 infrastructure/grafana/grafanasecrets
 
+features/*
+
 __pycache__/
 *.py[cod]
 *.pyc
