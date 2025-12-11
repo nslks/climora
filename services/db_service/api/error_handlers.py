@@ -3,7 +3,11 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from ..exceptions import MeasurementPersistenceError, MeasurementValidationError
+from ..exceptions import (
+    MeasurementNotFoundError,
+    MeasurementPersistenceError,
+    MeasurementValidationError,
+)
 
 
 def register_error_handlers(app: FastAPI) -> None:
@@ -21,4 +25,11 @@ def register_error_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={"detail": "Unable to persist measurement.", "info": exc.details},
+        )
+
+    @app.exception_handler(MeasurementNotFoundError)
+    async def handle_not_found(_: Request, exc: MeasurementNotFoundError) -> JSONResponse:  # noqa: D401
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"detail": str(exc)},
         )

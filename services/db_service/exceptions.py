@@ -13,3 +13,7 @@ class MeasurementPersistenceError(RuntimeError):
     def __init__(self, message: str, *, details: Optional[str] = None) -> None:
         super().__init__(message)
         self.details = details
+
+
+class MeasurementNotFoundError(RuntimeError):
+    """Raised when no measurements satisfy a read request."""
