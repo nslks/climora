@@ -163,6 +163,16 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 
 ---
 
+## 🧾 DB-Service Endpunkte
+
+| Methode | Pfad | Beschreibung |
+|---------|------|--------------|
+| `POST` | `/measurements/` | Persistiert eine neue Messung (interner Aufruf durch den Collector) |
+| `GET` | `/measurements/latest` | Liefert die zuletzt gespeicherte Messung |
+| `GET` | `/measurements/?limit=50` | Listet die neuesten Messungen (Limit 1–500) |
+
+---
+
 ## 🧩 Erweiterungsideen
 
 - 🔔 **Benachrichtigungssystem:** Warnung bei kritischer Luftfeuchtigkeit  
