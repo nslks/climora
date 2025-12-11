@@ -1,9 +1,18 @@
 """Service layer handling measurement persistence."""
 
+from typing import List
+
 from shared.models.sensor_measurement import SensorMeasurement
 
-from ..exceptions import MeasurementPersistenceError, MeasurementValidationError
+from ..exceptions import (
+    MeasurementNotFoundError,
+    MeasurementPersistenceError,
+    MeasurementValidationError,
+)
 from ..repositories.measurement_repository_interface import IMeasurementRepository
+
+MIN_QUERY_LIMIT = 1
+MAX_QUERY_LIMIT = 500
 
 
 class MeasurementService:
@@ -21,6 +30,22 @@ class MeasurementService:
             raise
         except Exception as exc:  # noqa: BLE001
             raise MeasurementPersistenceError("Unexpected repository failure.") from exc
+
+    def getLatestMeasurement(self) -> SensorMeasurement:
+        """Fetch the newest measurement or raise if none exist."""
+        measurement = self._repository.getLatestMeasurement()
+        if measurement is None:
+            raise MeasurementNotFoundError("No measurements available.")
+        return measurement
+
+    def listMeasurements(self, *, limit: int) -> List[SensorMeasurement]:
+        """Return up to `limit` newest measurements."""
+        if limit < MIN_QUERY_LIMIT or limit > MAX_QUERY_LIMIT:
+            raise MeasurementValidationError(
+                f"Limit must be between {MIN_QUERY_LIMIT} and {MAX_QUERY_LIMIT}."
+            )
+        measurements = self._repository.listMeasurements(limit=limit)
+        return list(measurements)
 
     def _ensureValidRanges(self, measurement: SensorMeasurement) -> None:
         """Check that temperature and humidity stay within reasonable bounds."""

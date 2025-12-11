@@ -1,6 +1,6 @@
 """FastAPI application factory for the DB service."""
 
-from typing import Optional
+from typing import Callable, Optional
 
 from fastapi import FastAPI
 
@@ -11,15 +11,18 @@ from ..services.measurement_service import MeasurementService
 from .error_handlers import register_error_handlers
 from .routes.measurement_routes import router as measurement_router
 
+RepositoryFactory = Callable[[RuntimeConfig], IMeasurementRepository]
 
-def create_application(config: RuntimeConfig) -> FastAPI:
+
+def create_application(config: RuntimeConfig, repository_factory: Optional[RepositoryFactory] = None) -> FastAPI:
     """Create and configure a FastAPI instance."""
     app = FastAPI(title=config.application_name, version=config.application_version)
     app.state.config = config
+    factory = repository_factory or _build_repository
 
     @app.on_event("startup")
     def on_startup() -> None:
-        repository = _build_repository(config)
+        repository = factory(config)
         app.state.measurement_repository = repository
         app.state.measurement_service = MeasurementService(repository)
 
