@@ -4,12 +4,12 @@ import os
 
 from .runtime_config import RuntimeConfig
 
+DEFAULT_AI_SERVICE_URL = "http://ai_service:8003"
+
 
 def load_runtime_config() -> RuntimeConfig:
     """Create a runtime configuration from environment variables."""
-    ai_base_url = os.getenv("PROCESSOR_AI_SERVICE_URL")
-    if not ai_base_url:
-        raise RuntimeError("PROCESSOR_AI_SERVICE_URL must be set for the processor worker.")
+    ai_base_url = os.getenv("PROCESSOR_AI_SERVICE_URL", DEFAULT_AI_SERVICE_URL)
 
     return RuntimeConfig(
         db_service_base_url=os.environ["DB_SERVICE_URL"],
