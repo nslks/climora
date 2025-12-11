@@ -97,6 +97,13 @@ DB_SERVICE_TIMEOUT_SECONDS=5
 AI_SERVICE_OLLAMA_BASE_URL=http://ollama:11434
 AI_SERVICE_OLLAMA_MODEL=llama3.1:8b
 
+# Processor Worker
+PROCESSOR_POLL_INTERVAL_SECONDS=15
+PROCESSOR_AI_SERVICE_URL=http://ai_service:8003
+PROCESSOR_AI_SERVICE_TIMEOUT_SECONDS=5
+PROCESSOR_ROOM_IDENTIFIER=LivingRoom
+PROCESSOR_SENSOR_IDENTIFIER=Sensor-1
+
 ```
 
 ### Starten
@@ -170,6 +177,15 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 | `POST` | `/measurements/` | Persistiert eine neue Messung (interner Aufruf durch den Collector) |
 | `GET` | `/measurements/latest` | Liefert die zuletzt gespeicherte Messung |
 | `GET` | `/measurements/?limit=50` | Listet die neuesten Messungen (Limit 1–500) |
+
+---
+
+## 🔁 Processor Worker
+
+- Pollt den DB-Service (`/measurements/latest`) im gewünschten Intervall (`PROCESSOR_POLL_INTERVAL_SECONDS`)  
+- Jede neue Messung wird direkt zum AI-Service (Ollama) weitergereicht und die Empfehlung im Log festgehalten  
+- `PROCESSOR_ROOM_IDENTIFIER` / `PROCESSOR_SENSOR_IDENTIFIER` werden im Request mitgeschickt, damit der Prompt Kontext hat  
+- Wird automatisch im Compose-Stack gestartet (`processor` Service); schlägt fehl, falls kein AI-Service erreichbar ist
 
 ---
 
