@@ -58,6 +58,7 @@ climora/
 | **db_service** | Exponiert interne REST-Endpunkte und ist alleiniger Besitzer der Influx-Anbindung | FastAPI, InfluxDB Client |
 | **ai_service** | Berechnet Empfehlungen zum Heizen oder Lüften anhand aktueller Messwerte | FastAPI |
 | **ollama** | Lokale LLM-Inferenz als Backend für KI-Empfehlungen | Ollama |
+| **ntfy** | Self-hosted Push-Server für Benachrichtigungen | ntfy |
 | **api** | Bietet REST-Endpunkte für externe Clients und befragt den DB-Service | FastAPI |
 | **influxdb** | Zeitreihendatenbank für alle Messwerte | InfluxDB v2 |
 | **mosquitto** | MQTT Broker für Sensordaten | Eclipse Mosquitto |
@@ -97,12 +98,20 @@ DB_SERVICE_TIMEOUT_SECONDS=5
 AI_SERVICE_OLLAMA_BASE_URL=http://ollama:11434
 AI_SERVICE_OLLAMA_MODEL=llama3.1:8b
 
+# ntfy
+NTFY_BASE_URL=http://ntfy:80
+NTFY_PORT=8081
+
 # Processor Worker
 PROCESSOR_POLL_INTERVAL_SECONDS=15
 PROCESSOR_AI_SERVICE_URL=http://ai_service:8003
 PROCESSOR_AI_SERVICE_TIMEOUT_SECONDS=5
 PROCESSOR_ROOM_IDENTIFIER=LivingRoom
 PROCESSOR_SENSOR_IDENTIFIER=Sensor-1
+PROCESSOR_NTFY_BASE_URL=http://ntfy
+PROCESSOR_NTFY_TOPIC=climora-alerts
+# PROCESSOR_NTFY_USERNAME=ntfy
+# PROCESSOR_NTFY_PASSWORD=secret
 
 ```
 
@@ -145,6 +154,7 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 | DB-Service | http://localhost:8002 |
 | AI-Service | http://localhost:8003 |
 | Ollama | http://localhost:11434 |
+| ntfy | http://localhost:8081 |
 
 ---
 
@@ -186,6 +196,16 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 - Jede neue Messung wird direkt zum AI-Service (Ollama) weitergereicht und die Empfehlung im Log festgehalten  
 - `PROCESSOR_ROOM_IDENTIFIER` / `PROCESSOR_SENSOR_IDENTIFIER` werden im Request mitgeschickt, damit der Prompt Kontext hat  
 - Wird automatisch im Compose-Stack gestartet (`processor` Service); schlägt fehl, falls kein AI-Service erreichbar ist
+
+---
+
+## 📲 ntfy Push-Benachrichtigungen
+
+- Compose startet den ntfy-Server automatisch (`ntfy` Service) und mapped standardmäßig `http://localhost:8081` (konfigurierbar via `NTFY_PORT`)  
+- `PROCESSOR_NTFY_BASE_URL` zeigt innerhalb des Netzwerks auf die ntfy-Instanz (`http://ntfy` im Container, `http://localhost:8081` vom Host/iPhone)  
+- Auf dem iPhone: ntfy-App installieren → Server hinzufügen → URL `http://<dein-lokaler-Host>:8081` → Topic `PROCESSOR_NTFY_TOPIC` abonnieren  
+- Optional Basic Auth aktivieren: `PROCESSOR_NTFY_USERNAME` / `PROCESSOR_NTFY_PASSWORD` setzen und in der App denselben User eintragen  
+- Test: Im Playground-Modus laufen lassen, bis eine Empfehlung erzeugt wird – ntfy liefert sofort Pushs für jede neue Aktion (auch wenn wieder auf IDLE gewechselt wird)
 
 ---
 

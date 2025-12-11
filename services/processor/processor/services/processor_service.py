@@ -8,9 +8,11 @@ from datetime import datetime
 from typing import Optional
 
 from shared.clients.db_service_client import DbServiceClient, DbServiceError
+from shared.models.recommendation import RecommendationAction, RecommendationResponse
 from shared.models.sensor_measurement import SensorMeasurement
 
 from ..clients.ai_service_client import AIServiceClient, AIServiceClientError
+from ..clients.ntfy_client import NtfyClient, NtfyClientError
 from ..configuration.runtime_config import RuntimeConfig
 
 logger = logging.getLogger(__name__)
@@ -25,11 +27,14 @@ class ProcessorService:
         config: RuntimeConfig,
         db_client: DbServiceClient,
         ai_client: AIServiceClient,
+        ntfy_client: NtfyClient,
     ) -> None:
         self._config = config
         self._db_client = db_client
         self._ai_client = ai_client
+        self._ntfy_client = ntfy_client
         self._last_processed_at: Optional[datetime] = None
+        self._last_notified_action: Optional[RecommendationAction] = None
 
     def start(self) -> None:
         """Start the polling loop."""
@@ -94,3 +99,39 @@ class ProcessorService:
             recommendation.reason,
             recommendation.confidence,
         )
+        self._maybe_notify(recommendation)
+
+    def _maybe_notify(self, recommendation: RecommendationResponse) -> None:
+        if recommendation.action == self._last_notified_action:
+            return
+        self._send_notification(recommendation)
+        self._last_notified_action = recommendation.action
+
+    def _send_notification(self, recommendation: RecommendationResponse) -> None:
+        title, body, tags = self._build_notification_payload(recommendation)
+        try:
+            self._ntfy_client.sendNotification(title, body, tags=tags)
+        except NtfyClientError:
+            logger.exception("Failed to publish ntfy notification.")
+
+    def _build_notification_payload(
+        self,
+        recommendation: RecommendationResponse,
+    ) -> tuple[str, str, list[str]]:
+        action = recommendation.action
+        tags: list[str] = []
+        if action == RecommendationAction.HEATING:
+            title = "Climora: Heizen"
+            level = recommendation.heating_level or 1
+            body = f"Stelle die Heizung auf Stufe {level}. {recommendation.reason}"
+            tags = ["fire", "temperature"]
+        elif action == RecommendationAction.VENTILATION:
+            title = "Climora: Lüften"
+            mode = recommendation.ventilation_mode or "OPEN"
+            body = f"Lüfte ({mode}). {recommendation.reason}"
+            tags = ["air", "window"]
+        else:
+            title = "Climora: Alles ok"
+            body = recommendation.reason or "Raumklima stabil – Geräte können zurückgestellt werden."
+            tags = ["ok"]
+        return title, body, tags

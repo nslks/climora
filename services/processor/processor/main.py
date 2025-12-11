@@ -6,6 +6,7 @@ import os
 from shared.clients.db_service_client import DbServiceClient
 
 from .clients.ai_service_client import AIServiceClient
+from .clients.ntfy_client import NtfyClient
 from .configuration.load_config import load_runtime_config
 from .services.processor_service import ProcessorService
 
@@ -26,7 +27,19 @@ def run() -> None:
         timeout_seconds=config.ai_service_timeout_seconds,
     )
 
-    service = ProcessorService(config=config, db_client=db_client, ai_client=ai_client)
+    ntfy_client = NtfyClient(
+        base_url=config.ntfy_base_url,
+        topic=config.ntfy_topic,
+        username=config.ntfy_username,
+        password=config.ntfy_password,
+    )
+
+    service = ProcessorService(
+        config=config,
+        db_client=db_client,
+        ai_client=ai_client,
+        ntfy_client=ntfy_client,
+    )
     service.start()
 
 

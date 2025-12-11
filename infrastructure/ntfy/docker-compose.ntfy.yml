@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  ntfy:
+    image: binwiederhier/ntfy:v2.10.0
+    container_name: climora-ntfy
+    restart: unless-stopped
+    environment:
+      - NTFY_BASE_URL=${NTFY_BASE_URL:-http://ntfy:80}
+      - NTFY_CACHE_FILE=/var/cache/ntfy/cache.db
+    ports:
+      - "${NTFY_PORT:-8081}:80"
+    volumes:
+      - ./cache:/var/cache/ntfy
+      - ./config:/etc/ntfy

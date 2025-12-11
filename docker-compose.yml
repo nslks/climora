@@ -20,6 +20,11 @@ services:
       file: ./infrastructure/ollama/docker-compose.ollama.yml
       service: ollama
 
+  ntfy:
+    extends:
+      file: ./infrastructure/ntfy/docker-compose.ntfy.yml
+      service: ntfy
+
   db_service:
     build:
       context: ./services/db_service
