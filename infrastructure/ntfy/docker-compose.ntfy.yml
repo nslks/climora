@@ -5,9 +5,11 @@ services:
     image: binwiederhier/ntfy:v2.10.0
     container_name: climora-ntfy
     restart: unless-stopped
+    command: ["serve"]
     environment:
       - NTFY_BASE_URL=${NTFY_BASE_URL:-http://ntfy:80}
       - NTFY_CACHE_FILE=/var/cache/ntfy/cache.db
+      - NTFY_UPSTREAM_BASE_URL=${NTFY_UPSTREAM_BASE_URL:-https://ntfy.sh}
     ports:
       - "${NTFY_PORT:-8081}:80"
     volumes:

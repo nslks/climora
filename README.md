@@ -99,8 +99,9 @@ AI_SERVICE_OLLAMA_BASE_URL=http://ollama:11434
 AI_SERVICE_OLLAMA_MODEL=llama3.1:8b
 
 # ntfy
-NTFY_BASE_URL=http://ntfy:80
+NTFY_BASE_URL=http://192.168.0.189:8081
 NTFY_PORT=8081
+NTFY_UPSTREAM_BASE_URL=https://ntfy.sh
 
 # Processor Worker
 PROCESSOR_POLL_INTERVAL_SECONDS=15
@@ -202,7 +203,8 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 ## 📲 ntfy Push-Benachrichtigungen
 
 - Compose startet den ntfy-Server automatisch (`ntfy` Service) und mapped standardmäßig `http://localhost:8081` (konfigurierbar via `NTFY_PORT`)  
-- `PROCESSOR_NTFY_BASE_URL` zeigt innerhalb des Netzwerks auf die ntfy-Instanz (`http://ntfy` im Container, `http://localhost:8081` vom Host/iPhone)  
+- `NTFY_BASE_URL` muss von deinen Geräten erreichbar sein (z. B. `http://192.168.0.189:8081`), `PROCESSOR_NTFY_BASE_URL` bleibt `http://ntfy` für interne Service-Aufrufe  
+- `NTFY_UPSTREAM_BASE_URL=https://ntfy.sh` ermöglicht native Push-Registrierungen auf iOS/Android  
 - Auf dem iPhone: ntfy-App installieren → Server hinzufügen → URL `http://<dein-lokaler-Host>:8081` → Topic `PROCESSOR_NTFY_TOPIC` abonnieren  
 - Optional Basic Auth aktivieren: `PROCESSOR_NTFY_USERNAME` / `PROCESSOR_NTFY_PASSWORD` setzen und in der App denselben User eintragen  
 - Test: Im Playground-Modus laufen lassen, bis eine Empfehlung erzeugt wird – ntfy liefert sofort Pushs für jede neue Aktion (auch wenn wieder auf IDLE gewechselt wird)
