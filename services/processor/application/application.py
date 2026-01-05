@@ -12,8 +12,8 @@ from shared.clients.ntfy_client import NtfyClient
 from ..api.error_handlers import register_error_handlers
 from ..api.routes.measurement_routes import router as measurement_router
 from ..configuration.settings import ProcessorSettings, get_settings
-from ..infrastructure.clients.ai_recommendation_gateway import AIRecommendationGateway
-from ..infrastructure.clients.ntfy_notification_gateway import NtfyNotificationGateway
+from ..domain.gateways.ai_recommendation_gateway import AIRecommendationGateway
+from ..domain.gateways.ntfy_notification_gateway import NtfyNotificationGateway
 from ..services.measurement_processor_service import MeasurementProcessorService
 
 logger = logging.getLogger(__name__)

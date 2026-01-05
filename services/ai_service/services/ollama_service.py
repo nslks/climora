@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-from ai_service.domain.gateways.i_ollama_gateway import IOllamaGateway
+from services.ai_service.domain.i_ollama_gateway import IOllamaGateway
 from ai_service.exceptions import OllamaGenerationError
 
 

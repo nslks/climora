@@ -10,8 +10,8 @@ from ..api.error_handlers import register_error_handlers
 from ..api.routes.ollama_routes import router as ollama_router
 from ..configuration.settings import AIServiceSettings, get_settings
 from ..exceptions import OllamaConfigurationError
-from ..infrastructure.clients.ollama_client import OllamaClient
-from ..infrastructure.clients.ollama_gateway import OllamaGateway
+from ..domain.ollama_client import OllamaClient
+from ..domain.ollama_gateway import OllamaGateway
 from ..services.ollama_service import OllamaService
 
 logger = logging.getLogger(__name__)
