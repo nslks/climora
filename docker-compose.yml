@@ -8,11 +8,6 @@ services:
       - mosquitto-data:/mosquitto/data
       - mosquitto-log:/mosquitto/log
 
-  influxdb:
-    extends:
-      file: ./infrastructure/influxdb/docker-compose.influx.yml
-      service: influxdb
-
   ollama:
     extends:
       file: ./infrastructure/ollama/docker-compose.ollama.yml
@@ -23,35 +18,34 @@ services:
       file: ./infrastructure/ntfy/docker-compose.ntfy.yml
       service: ntfy
 
-  db_service:
-    build:
-      context: ./services/db_service
-      dockerfile: Dockerfile
-    container_name: climora-db-service
-    depends_on:
-      - influxdb
-    env_file:
-      - .env
-      - ./infrastructure/secrets/influx.env
-    restart: unless-stopped
-    ports:
-      - "8002:8002"
-    volumes:
-      - ./shared:/app/shared
-
   ai_service:
     build:
       context: ./services/ai_service
       dockerfile: Dockerfile
     container_name: climora-ai-service
     depends_on:
-      - db_service
       - ollama
     env_file:
       - .env
     restart: unless-stopped
     ports:
       - "8003:8003"
+    volumes:
+      - ./shared:/app/shared
+
+  processor:
+    build:
+      context: ./services/processor
+      dockerfile: Dockerfile
+    container_name: climora-processor
+    depends_on:
+      - ai_service
+      - ntfy
+    env_file:
+      - .env
+    restart: unless-stopped
+    ports:
+      - "8004:8004"
     volumes:
       - ./shared:/app/shared
 
@@ -62,38 +56,15 @@ services:
     container_name: climora-data-collector
     depends_on:
       - mosquitto
-      - db_service
-    env_file:
-      - .env
-    restart: unless-stopped
-    volumes:
-      - ./shared:/app/shared  # wichtig, damit das geteilte Modell importiert werden kann
-
-  processor:
-    build:
-      context: ./services/processor
-      dockerfile: Dockerfile
-    container_name: climora-processor
-    depends_on:
-      - db_service
+      - processor
     env_file:
       - .env
     restart: unless-stopped
     volumes:
       - ./shared:/app/shared
 
-  grafana:
-    extends:
-      file: ./infrastructure/grafana/docker-compose.grafana.yml
-      service: grafana
-    depends_on:
-      - influxdb
-
 
 volumes:
   mosquitto-data:
   mosquitto-log:
-  influxdb-data:
-  influxdb-config:
-  grafana-data:
   ollama-data:

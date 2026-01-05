@@ -1,6 +1,6 @@
 """Entrypoint for the Climora data collector service."""
 
-from shared.clients.db_service_client import DbServiceClient
+from shared.clients.processor_client import ProcessorClient
 
 from .configuration.load_config import load_runtime_config
 from .fetchers.mqtt_fetcher import MqttMeasurementFetcher
@@ -11,10 +11,9 @@ from .services.data_collector_service import DataCollectorService
 def run() -> None:
     """Bootstrap the data collector application and start processing."""
     config = load_runtime_config()
-    db_client = DbServiceClient(
-        base_url=config.db_service_base_url,
-        api_key=config.db_service_api_key,
-        timeout_seconds=config.db_service_timeout_seconds,
+    processor_client = ProcessorClient(
+        base_url=config.processor_base_url,
+        timeout_seconds=config.processor_timeout_seconds,
     )
 
     if config.playground_mode:
@@ -27,7 +26,12 @@ def run() -> None:
             client_identifier=config.mqtt_client_identifier,
         )
 
-    service = DataCollectorService(fetcher=fetcher, db_client=db_client)
+    service = DataCollectorService(
+        fetcher=fetcher,
+        processor_client=processor_client,
+        room_identifier=config.room_identifier,
+        sensor_identifier=config.sensor_identifier,
+    )
     service.start()
 
 

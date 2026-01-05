@@ -27,7 +27,7 @@ class NtfyClient:
         self._auth = (username, password) if username and password else None
         self._timeout = timeout_seconds
 
-    def sendNotification(
+    def send_notification(
         self,
         title: str,
         message: str,
@@ -53,3 +53,7 @@ class NtfyClient:
             response.raise_for_status()
         except httpx.HTTPError as exc:
             raise NtfyClientError("Failed to publish ntfy notification.") from exc
+
+    def close(self) -> None:
+        """Close client resources (no-op)."""
+        return None

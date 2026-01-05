@@ -1,55 +1,73 @@
+"""Service collecting measurements and forwarding them to the processor."""
+
+from __future__ import annotations
+
 import json
 import logging
 import time
-from typing import Dict
+from typing import Dict, Optional
 
 from pydantic import ValidationError
 
-from ..fetchers.measurement_fetcher_interface import IMeasurementFetcher
-from shared.clients.db_service_client import DbServiceClient, DbServiceError
+from shared.clients.processor_client import ProcessorClient, ProcessorClientError
 from shared.models.sensor_measurement import SensorMeasurement
+
+from ..fetchers.measurement_fetcher_interface import IMeasurementFetcher
+
+logger = logging.getLogger(__name__)
 
 
 class DataCollectorService:
-    """Coordinates fetching raw payloads, validation, and delegation to the DB service."""
+    """Coordinates fetching payloads, validation, and delegation to the processor."""
 
-    _logger = logging.getLogger(__name__)
-
-    def __init__(self, *, fetcher: IMeasurementFetcher, db_client: DbServiceClient) -> None:
+    def __init__(
+        self,
+        *,
+        fetcher: IMeasurementFetcher,
+        processor_client: ProcessorClient,
+        room_identifier: Optional[str],
+        sensor_identifier: Optional[str],
+    ) -> None:
         self._measurement_fetcher = fetcher
-        self._db_client = db_client
+        self._processor_client = processor_client
+        self._room_identifier = room_identifier
+        self._sensor_identifier = sensor_identifier
 
     def start(self) -> None:
         """Begin collecting measurements and block indefinitely."""
-        self._measurement_fetcher.startCollecting(self._handleIncomingPayload)
+        self._measurement_fetcher.startCollecting(self._handle_incoming_payload)
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
-            pass
+            logger.info("Data collector interrupted, shutting down.")
         finally:
             self._measurement_fetcher.stopCollecting()
-            self._db_client.close()
+            self._processor_client.close()
 
-    def _handleIncomingPayload(self, payload: bytes) -> None:
+    def _handle_incoming_payload(self, payload: bytes) -> None:
         try:
-            measurement = self._buildMeasurement(payload)
+            measurement = self._build_measurement(payload)
         except ValueError:
+            logger.debug("Discarded invalid payload.")
             return
-        payload = self._serializeMeasurement(measurement)
+        payload_dict = self._serialize_measurement(measurement)
+        payload_dict.setdefault("room_identifier", self._room_identifier)
+        payload_dict.setdefault("sensor_identifier", self._sensor_identifier)
         try:
-            self._db_client.post("/measurements/", json=payload)
-        except DbServiceError:
-            self._logger.exception("Failed to send measurement to DB service.")
+            self._processor_client.submit_measurement(payload_dict)
+            logger.debug("Forwarded measurement to processor.")
+        except ProcessorClientError:
+            logger.exception("Failed to forward measurement to processor service.")
 
-    def _buildMeasurement(self, payload: bytes) -> SensorMeasurement:
-        decoded_payload = self._decodePayload(payload)
+    def _build_measurement(self, payload: bytes) -> SensorMeasurement:
+        decoded_payload = self._decode_payload(payload)
         try:
             return SensorMeasurement(**decoded_payload)
         except ValidationError as exc:
             raise ValueError("Invalid measurement payload.") from exc
 
-    def _decodePayload(self, payload: bytes) -> Dict[str, object]:
+    def _decode_payload(self, payload: bytes) -> Dict[str, object]:
         try:
             text = payload.decode("utf-8")
             data = json.loads(text)
@@ -59,11 +77,10 @@ class DataCollectorService:
             raise ValueError("Payload must represent a JSON object.")
         return data
 
-    def _serializeMeasurement(self, measurement: SensorMeasurement) -> Dict[str, object]:
-        """Convert the measurement into a JSON-safe payload."""
+    def _serialize_measurement(self, measurement: SensorMeasurement) -> Dict[str, object]:
         payload = measurement.dict()
         timestamp = payload.get("timestamp")
-        if isinstance(timestamp, (str, bytes)):
+        if isinstance(timestamp, str):
             return payload
         payload["timestamp"] = measurement.timestamp.isoformat()
         return payload

@@ -1,7 +1,7 @@
 """Shared Pydantic models for sensor data."""
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -15,3 +15,5 @@ class SensorMeasurement(BaseModel):
         default_factory=lambda: datetime.now(timezone.utc),
         description="Timestamp of the measurement in UTC.",
     )
+    room_identifier: Optional[str] = Field(default=None, description="Room context for the measurement.")
+    sensor_identifier: Optional[str] = Field(default=None, description="Origin sensor information.")

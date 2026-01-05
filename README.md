@@ -1,18 +1,17 @@
 # 🌤️ Climora — IoT-System zur Schimmelprävention
 
-**Climora** ist ein containerisiertes IoT-System, das Umgebungsdaten (Temperatur & Luftfeuchtigkeit) eines Raumes erfasst, speichert und analysiert, um präventive Maßnahmen gegen Schimmelbildung zu ermöglichen.  
+**Climora** ist ein containerisiertes IoT-System, das Sensordaten (Temperatur & Luftfeuchtigkeit) entgegennimmt und unmittelbar Handlungsempfehlungen generiert.  
 
-Die Messwerte stammen von **Arduino-basierten Sensoren** (nicht Teil dieses Projekts), werden per **MQTT** übertragen und in einer **InfluxDB** gespeichert.  
-Dieses Projekt umfasst die gesamte **Server- / Backend-Infrastruktur**, um diese Daten zu verarbeiten, zu speichern und bereitzustellen.
+Die Messwerte stammen von **Arduino-basierten Sensoren** (nicht Teil dieses Projekts), werden per **MQTT** übertragen und sofort an einen Prozessor-Service weitergeleitet. Dort entscheidet eine lokale Ollama-Instanz, ob gelüftet oder geheizt werden soll, und verschickt eine ntfy-Benachrichtigung.
 
 ## 🧰 Tech Stack
 
 - **Python**
   - **FastAPI**
   - **paho-mqtt**
-- **InfluxDB 2.x**
+- **Ollama**
+- **ntfy**
 - **Docker / Docker Compose**
-- **Visualisierung**
 
 ---
 
@@ -30,20 +29,19 @@ climora/
 ├── .env                        # Gemeinsame Umgebungsvariablen
 │
 ├── services/
-│   ├── data_collector/         # Liest MQTT und delegiert Messwerte an den DB-Service
-│   ├── api/                    # FastAPI REST-Interface für Clients (liest vom DB-Service)
-│   ├── db_service/             # FastAPI-Service als einziger Influx-Zugriffspunkt
+│   ├── data_collector/         # Liest MQTT und leitet Messungen an den Prozessor weiter
 │   ├── ai_service/             # FastAPI-Service als Proxy zur lokalen Ollama-Instanz
-│   ├── processor/              # Analysen, Alerts, ML
+│   └── processor/              # HTTP-Service, der Ollama & ntfy orchestriert
 │
 ├── shared/                     # Gemeinsame Codebasis (Models, Utils, Config)
 │   ├── models/
 │   ├── config/
 │   └── utils/
 │
-├── infra/                      # Externe Infrastruktur (lokal per Compose)
+├── infrastructure/             # Externe Infrastruktur (lokal per Compose)
 │   ├── mosquitto/              # MQTT Broker Config
-│   └── influxdb/               # InfluxDB Setup & Persistenz
+│   ├── ntfy/                   # ntfy Server
+│   └── ollama/                 # Ollama Setup
 │
 └── README.md
 ```
@@ -56,15 +54,12 @@ Eine detaillierte Beschreibung der erwarteten Service-Struktur (Ordner, Verantwo
 
 | Service | Beschreibung | Technologie |
 |----------|---------------|--------------|
-| **data_collector** | Abonniert MQTT-Topics und sendet validierte Messwerte an den DB-Service | Python (paho-mqtt, httpx) |
-| **db_service** | Exponiert interne REST-Endpunkte und ist alleiniger Besitzer der Influx-Anbindung | FastAPI, InfluxDB Client |
+| **data_collector** | Abonniert MQTT-Topics und postet validierte Messwerte an den Prozessor | Python (paho-mqtt, httpx) |
+| **processor** | HTTP-Service, der Messungen annimmt, Ollama befragt und ntfy-Benachrichtigungen auslöst | FastAPI |
 | **ai_service** | Stellt ein HTTP-Interface zur lokalen Ollama-Instanz bereit | FastAPI |
-| **ollama** | Lokale LLM-Inferenz als Backend für KI-Empfehlungen | Ollama |
+| **ollama** | Lokale LLM-Inferenz als Backend | Ollama |
 | **ntfy** | Self-hosted Push-Server für Benachrichtigungen | ntfy |
-| **api** | Bietet REST-Endpunkte für externe Clients und befragt den DB-Service | FastAPI |
-| **influxdb** | Zeitreihendatenbank für alle Messwerte | InfluxDB v2 |
 | **mosquitto** | MQTT Broker für Sensordaten | Eclipse Mosquitto |
-| **processor** | Analysen, Alerts oder Forecasting | Python |
 
 ---
 
@@ -78,44 +73,35 @@ Eine detaillierte Beschreibung der erwarteten Service-Struktur (Ordner, Verantwo
 ### Beispiel `.env`
 
 ```bash
-# MQTT
+# MQTT / Data Collector
 MQTT_BROKER=mosquitto
 MQTT_PORT=1883
-MQTT_TOPIC=sensor/# 
+MQTT_TOPIC=sensor/#
 MQTT_CLIENT_ID=climora-data-collector
-
-# InfluxDB (nur vom DB-Service genutzt)
-INFLUXDB_URL=http://influxdb:8086
-INFLUXDB_API_TOKEN=my-token
-INFLUXDB_ORG=my-org
-INFLUXDB_BUCKET=sensor_data
-INFLUX_VERIFY_SSL=false
-
-# Interner DB-Service
-DB_SERVICE_URL=http://db_service:8002
-DB_SERVICE_API_KEY=internal-token
-DB_SERVICE_TIMEOUT_SECONDS=5
+# Optional Overrides
+# PROCESSOR_URL=http://processor:8004
+# PROCESSOR_TIMEOUT_SECONDS=5
+# ROOM_IDENTIFIER=LivingRoom
+# SENSOR_IDENTIFIER=Sensor-1
 
 # AI Service / Ollama
 AI_SERVICE_OLLAMA_BASE_URL=http://ollama:11434
 AI_SERVICE_OLLAMA_MODEL=llama3.1:8b
 
-# ntfy
-NTFY_BASE_URL=http://192.168.0.189:8081
-NTFY_PORT=8081
-NTFY_UPSTREAM_BASE_URL=https://ntfy.sh
-
-# Processor Worker
-PROCESSOR_POLL_INTERVAL_SECONDS=15
+# Processor / ntfy
 PROCESSOR_AI_SERVICE_URL=http://ai_service:8003
 PROCESSOR_AI_SERVICE_TIMEOUT_SECONDS=5
-PROCESSOR_ROOM_IDENTIFIER=LivingRoom
-PROCESSOR_SENSOR_IDENTIFIER=Sensor-1
 PROCESSOR_NTFY_BASE_URL=http://ntfy
 PROCESSOR_NTFY_TOPIC=climora-alerts
 # PROCESSOR_NTFY_USERNAME=ntfy
 # PROCESSOR_NTFY_PASSWORD=secret
+# PROCESSOR_ROOM_IDENTIFIER=LivingRoom
+# PROCESSOR_SENSOR_IDENTIFIER=Sensor-1
 
+# ntfy Server (für öffentlich erreichbares UI)
+NTFY_BASE_URL=http://192.168.0.189:8081
+NTFY_PORT=8081
+NTFY_UPSTREAM_BASE_URL=https://ntfy.sh
 ```
 
 ### Starten
@@ -141,9 +127,9 @@ Wer VS Code oder eine andere Dev-Container-kompatible IDE nutzt, kann pro Servic
 
 | Devcontainer | Pfad | Zweck |
 |--------------|------|-------|
-| API Service | `services/api/.devcontainer/devcontainer.json` | FastAPI-Entwicklung, pytest-Konfiguration |
 | Data Collector | `services/data_collector/.devcontainer/devcontainer.json` | MQTT-Collector schnell testen |
-| DB Service | `services/db_service/.devcontainer/devcontainer.json` | Single source of truth für Influx-Anbindung |
+| Processor | `services/processor/.devcontainer/devcontainer.json` | FastAPI-Service für Benachrichtigungen |
+| AI Service | `services/ai_service/.devcontainer/devcontainer.json` | FastAPI/Ollama-Proxy |
 
 Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jeweiligen `requirements.txt` und forwarded relevante Ports (8000 bzw. 8002).
 
@@ -152,9 +138,7 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 | Service | Adresse |
 |----------|----------|
 | MQTT Broker | mqtt://localhost:1883 |
-| InfluxDB UI | http://localhost:8086 |
-| API | http://localhost:8000 |
-| DB-Service | http://localhost:8002 |
+| Processor | http://localhost:8004 |
 | AI-Service | http://localhost:8003 |
 | Ollama | http://localhost:11434 |
 | ntfy | http://localhost:8081 |
@@ -163,42 +147,27 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 
 ## 📡 Datenfluss im System
 
-1. **Arduino misst Temperatur & Feuchtigkeit**  
-   → sendet MQTT-Message an Topic `sensor/temperature`.
+1. **Sensor → Mosquitto**  
+   Der Sensor publiziert Temperatur- & Feuchtigkeitsdaten auf dem MQTT-Topic `sensor/#`.
 
-2. **Mosquitto (Broker)**  
-   → empfängt & verteilt Nachricht an Subscriber.
+2. **Data Collector**  
+   Abonniert das Topic, validiert die Payload per Pydantic und postet sie sofort zum Prozessor (`POST /measurements`).
 
-3. **Data Collector → DB-Service**  
-   → validiert Payloads und sendet sie per REST an den DB-Service.
+3. **Processor**  
+   Ruft den AI-Service auf, erhält eine Empfehlung (HEATING/VENTILATION/IDLE) und verschickt eine ntfy-Benachrichtigung, sofern sich die Aktion verändert hat.
 
-4. **DB-Service**  
-   → persistiert Messwerte in InfluxDB und stellt interne Endpunkte bereit.
+4. **AI Service + Ollama**  
+   Der AI-Service formatiert den Prompt, ruft Ollama auf `http://ollama:11434` auf und liefert das JSON-Ergebnis an den Prozessor zurück.
 
-5. **API-Service**  
-   → konsumiert ausschließlich den DB-Service und bietet öffentliche REST-Endpunkte.
-
-6. **Processor**
-   → TODO
+5. **ntfy**  
+   Erhält die Benachrichtigung (Title + Body + Tags) und pusht sie an alle registrierten Geräte.
 
 ---
 
-## 🧾 DB-Service Endpunkte
+## 🔁 Processor API
 
-| Methode | Pfad | Beschreibung |
-|---------|------|--------------|
-| `POST` | `/measurements/` | Persistiert eine neue Messung (interner Aufruf durch den Collector) |
-| `GET` | `/measurements/latest` | Liefert die zuletzt gespeicherte Messung |
-| `GET` | `/measurements/?limit=50` | Listet die neuesten Messungen (Limit 1–500) |
-
----
-
-## 🔁 Processor Worker
-
-- Pollt den DB-Service (`/measurements/latest`) im gewünschten Intervall (`PROCESSOR_POLL_INTERVAL_SECONDS`)  
-- Jede neue Messung wird direkt zum AI-Service (Ollama) weitergereicht und die Rückgabe im Log festgehalten  
-- `PROCESSOR_ROOM_IDENTIFIER` / `PROCESSOR_SENSOR_IDENTIFIER` werden im Request mitgeschickt, damit der Prompt Kontext hat  
-- Wird automatisch im Compose-Stack gestartet (`processor` Service); schlägt fehl, falls kein AI-Service erreichbar ist
+- `POST /measurements`: nimmt eine `SensorMeasurement` entgegen (Temperatur, Luftfeuchtigkeit, Timestamp + optionale Raum-/Sensor IDs), ruft Ollama via AI-Service auf und gibt die Recommendation (`RecommendationResponse`) zurück.
+- Bei jeder neuen Aktion (`RecommendationAction`) wird zusätzlich eine ntfy-Benachrichtigung verschickt. Identische Aktionen werden unterdrückt, um Spam zu verhindern.
 
 ---
 

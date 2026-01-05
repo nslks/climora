@@ -12,8 +12,9 @@ class RuntimeConfig:
     mqtt_broker_port: int
     mqtt_topic_filter: str
     mqtt_client_identifier: str
-    db_service_base_url: str
-    db_service_api_key: Optional[str]
-    db_service_timeout_seconds: float
+    processor_base_url: str
+    processor_timeout_seconds: float
+    room_identifier: Optional[str]
+    sensor_identifier: Optional[str]
     playground_mode: bool
     playground_interval_seconds: float
