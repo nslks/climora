@@ -5,14 +5,14 @@ from __future__ import annotations
 import json
 import logging
 import time
-from typing import Dict, Optional
+from typing import Any
 
 from pydantic import ValidationError
 
+from data_collector.domain.fetchers.i_measurement_fetcher import IMeasurementFetcher
+from data_collector.exceptions import MeasurementDecodingError, MeasurementValidationError
 from shared.clients.processor_client import ProcessorClient, ProcessorClientError
 from shared.models.sensor_measurement import SensorMeasurement
-
-from ..fetchers.measurement_fetcher_interface import IMeasurementFetcher
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +25,8 @@ class DataCollectorService:
         *,
         fetcher: IMeasurementFetcher,
         processor_client: ProcessorClient,
-        room_identifier: Optional[str],
-        sensor_identifier: Optional[str],
+        room_identifier: str | None,
+        sensor_identifier: str | None,
     ) -> None:
         self._measurement_fetcher = fetcher
         self._processor_client = processor_client
@@ -35,21 +35,22 @@ class DataCollectorService:
 
     def start(self) -> None:
         """Begin collecting measurements and block indefinitely."""
-        self._measurement_fetcher.startCollecting(self._handle_incoming_payload)
+        logger.info("Starting data collector service.")
+        self._measurement_fetcher.start_collecting(self._handle_incoming_payload)
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
             logger.info("Data collector interrupted, shutting down.")
         finally:
-            self._measurement_fetcher.stopCollecting()
+            self._measurement_fetcher.stop_collecting()
             self._processor_client.close()
 
     def _handle_incoming_payload(self, payload: bytes) -> None:
         try:
             measurement = self._build_measurement(payload)
-        except ValueError:
-            logger.debug("Discarded invalid payload.")
+        except (MeasurementDecodingError, MeasurementValidationError) as exc:
+            logger.debug("Discarded invalid payload.", extra={"error": str(exc)})
             return
         payload_dict = self._serialize_measurement(measurement)
         payload_dict.setdefault("room_identifier", self._room_identifier)
@@ -65,19 +66,19 @@ class DataCollectorService:
         try:
             return SensorMeasurement(**decoded_payload)
         except ValidationError as exc:
-            raise ValueError("Invalid measurement payload.") from exc
+            raise MeasurementValidationError("Invalid measurement payload.") from exc
 
-    def _decode_payload(self, payload: bytes) -> Dict[str, object]:
+    def _decode_payload(self, payload: bytes) -> dict[str, Any]:
         try:
             text = payload.decode("utf-8")
             data = json.loads(text)
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise ValueError("Payload must be valid UTF-8 encoded JSON.") from exc
+            raise MeasurementDecodingError("Payload must be valid UTF-8 encoded JSON.") from exc
         if not isinstance(data, dict):
-            raise ValueError("Payload must represent a JSON object.")
+            raise MeasurementDecodingError("Payload must represent a JSON object.")
         return data
 
-    def _serialize_measurement(self, measurement: SensorMeasurement) -> Dict[str, object]:
+    def _serialize_measurement(self, measurement: SensorMeasurement) -> dict[str, Any]:
         payload = measurement.dict()
         timestamp = payload.get("timestamp")
         if isinstance(timestamp, str):

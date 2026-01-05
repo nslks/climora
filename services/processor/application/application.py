@@ -12,6 +12,7 @@ from shared.clients.ntfy_client import NtfyClient
 from ..api.error_handlers import register_error_handlers
 from ..api.routes.measurement_routes import router as measurement_router
 from ..configuration.settings import ProcessorSettings, get_settings
+from ..services.measurement_processor_service import MeasurementProcessorService
 
 logger = logging.getLogger(__name__)
 
@@ -34,19 +35,19 @@ def create_application() -> FastAPI:
             password=settings.ntfy_password,
             timeout_seconds=settings.ntfy_timeout_seconds,
         )
-        app.state.ai_client = ai_client
-        app.state.ntfy_client = ntfy_client
-        app.state.room_identifier = settings.room_identifier
-        app.state.sensor_identifier = settings.sensor_identifier
-        app.state.last_action = None
+        service = MeasurementProcessorService(
+            ai_client=ai_client,
+            ntfy_client=ntfy_client,
+            room_identifier=settings.room_identifier,
+            sensor_identifier=settings.sensor_identifier,
+        )
+        app.state.measurement_processor_service = service
         logger.info("Processor service started.")
 
     @app.on_event("shutdown")
     def on_shutdown() -> None:
-        ai_client: AIServiceClient = app.state.ai_client
-        ntfy_client: NtfyClient = app.state.ntfy_client
-        ai_client.close()
-        ntfy_client.close()
+        service: MeasurementProcessorService = app.state.measurement_processor_service
+        service.close()
 
     register_error_handlers(app)
     app.include_router(measurement_router)
