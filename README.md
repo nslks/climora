@@ -33,7 +33,7 @@ climora/
 │   ├── data_collector/         # Liest MQTT und delegiert Messwerte an den DB-Service
 │   ├── api/                    # FastAPI REST-Interface für Clients (liest vom DB-Service)
 │   ├── db_service/             # FastAPI-Service als einziger Influx-Zugriffspunkt
-│   ├── ai_service/             # FastAPI-Service für Heiz- und Lüftungsempfehlungen
+│   ├── ai_service/             # FastAPI-Service als Proxy zur lokalen Ollama-Instanz
 │   ├── processor/              # Analysen, Alerts, ML
 │
 ├── shared/                     # Gemeinsame Codebasis (Models, Utils, Config)
@@ -48,6 +48,8 @@ climora/
 └── README.md
 ```
 
+Eine detaillierte Beschreibung der erwarteten Service-Struktur (Ordner, Verantwortlichkeiten, Konventionen) findet sich in `docs/service-structure.md`.
+
 ---
 
 ## ⚙️ Services im Überblick
@@ -56,7 +58,7 @@ climora/
 |----------|---------------|--------------|
 | **data_collector** | Abonniert MQTT-Topics und sendet validierte Messwerte an den DB-Service | Python (paho-mqtt, httpx) |
 | **db_service** | Exponiert interne REST-Endpunkte und ist alleiniger Besitzer der Influx-Anbindung | FastAPI, InfluxDB Client |
-| **ai_service** | Berechnet Empfehlungen zum Heizen oder Lüften anhand aktueller Messwerte | FastAPI |
+| **ai_service** | Stellt ein HTTP-Interface zur lokalen Ollama-Instanz bereit | FastAPI |
 | **ollama** | Lokale LLM-Inferenz als Backend für KI-Empfehlungen | Ollama |
 | **ntfy** | Self-hosted Push-Server für Benachrichtigungen | ntfy |
 | **api** | Bietet REST-Endpunkte für externe Clients und befragt den DB-Service | FastAPI |
@@ -194,7 +196,7 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 ## 🔁 Processor Worker
 
 - Pollt den DB-Service (`/measurements/latest`) im gewünschten Intervall (`PROCESSOR_POLL_INTERVAL_SECONDS`)  
-- Jede neue Messung wird direkt zum AI-Service (Ollama) weitergereicht und die Empfehlung im Log festgehalten  
+- Jede neue Messung wird direkt zum AI-Service (Ollama) weitergereicht und die Rückgabe im Log festgehalten  
 - `PROCESSOR_ROOM_IDENTIFIER` / `PROCESSOR_SENSOR_IDENTIFIER` werden im Request mitgeschickt, damit der Prompt Kontext hat  
 - Wird automatisch im Compose-Stack gestartet (`processor` Service); schlägt fehl, falls kein AI-Service erreichbar ist
 
@@ -207,7 +209,7 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 - `NTFY_UPSTREAM_BASE_URL=https://ntfy.sh` ermöglicht native Push-Registrierungen auf iOS/Android  
 - Auf dem iPhone: ntfy-App installieren → Server hinzufügen → URL `http://<dein-lokaler-Host>:8081` → Topic `PROCESSOR_NTFY_TOPIC` abonnieren  
 - Optional Basic Auth aktivieren: `PROCESSOR_NTFY_USERNAME` / `PROCESSOR_NTFY_PASSWORD` setzen und in der App denselben User eintragen  
-- Test: Im Playground-Modus laufen lassen, bis eine Empfehlung erzeugt wird – ntfy liefert sofort Pushs für jede neue Aktion (auch wenn wieder auf IDLE gewechselt wird)
+- Test: Im Playground-Modus laufen lassen, bis Ollama eine Antwort liefert – ntfy pusht jede neue Aktion sofort (auch wenn wieder auf IDLE gewechselt wird)
 
 ---
 

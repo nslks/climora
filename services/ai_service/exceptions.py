@@ -1,10 +1,13 @@
 """Domain specific exceptions for the AI service."""
 
 
-class RecommendationError(Exception):
-    """Base exception for recommendation issues."""
+class AIServiceError(Exception):
+    """Base exception for AI service issues."""
 
 
-class RecommendationValidationError(RecommendationError):
-    """Raised when the provided data cannot produce a recommendation."""
+class OllamaConfigurationError(AIServiceError):
+    """Raised when mandatory Ollama settings are missing."""
 
+
+class OllamaGenerationError(AIServiceError):
+    """Raised when Ollama could not generate a response."""
