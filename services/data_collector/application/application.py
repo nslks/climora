@@ -6,6 +6,7 @@ import logging
 
 from data_collector.configuration.settings import DataCollectorSettings, get_settings
 from data_collector.domain.fetchers.i_measurement_fetcher import IMeasurementFetcher
+from data_collector.infrastructure.clients.processor_measurement_forwarder import ProcessorMeasurementForwarder
 from data_collector.infrastructure.fetchers.mqtt_measurement_fetcher import MqttMeasurementFetcher
 from data_collector.infrastructure.fetchers.playground_measurement_fetcher import PlaygroundMeasurementFetcher
 from data_collector.services.data_collector_service import DataCollectorService
@@ -21,10 +22,11 @@ def run_data_collector() -> None:
         base_url=settings.processor_base_url,
         timeout_seconds=settings.processor_timeout_seconds,
     )
+    forwarder = ProcessorMeasurementForwarder(processor_client)
     fetcher = _build_fetcher(settings)
     service = DataCollectorService(
         fetcher=fetcher,
-        processor_client=processor_client,
+        forwarder=forwarder,
         room_identifier=settings.room_identifier,
         sensor_identifier=settings.sensor_identifier,
     )

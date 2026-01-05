@@ -12,6 +12,8 @@ from shared.clients.ntfy_client import NtfyClient
 from ..api.error_handlers import register_error_handlers
 from ..api.routes.measurement_routes import router as measurement_router
 from ..configuration.settings import ProcessorSettings, get_settings
+from ..infrastructure.clients.ai_recommendation_gateway import AIRecommendationGateway
+from ..infrastructure.clients.ntfy_notification_gateway import NtfyNotificationGateway
 from ..services.measurement_processor_service import MeasurementProcessorService
 
 logger = logging.getLogger(__name__)
@@ -28,6 +30,7 @@ def create_application() -> FastAPI:
             base_url=settings.ai_service_base_url,
             timeout_seconds=settings.ai_service_timeout_seconds,
         )
+        recommendation_gateway = AIRecommendationGateway(ai_client)
         ntfy_client = NtfyClient(
             base_url=settings.ntfy_base_url,
             topic=settings.ntfy_topic,
@@ -35,9 +38,10 @@ def create_application() -> FastAPI:
             password=settings.ntfy_password,
             timeout_seconds=settings.ntfy_timeout_seconds,
         )
+        notification_gateway = NtfyNotificationGateway(ntfy_client)
         service = MeasurementProcessorService(
-            ai_client=ai_client,
-            ntfy_client=ntfy_client,
+            recommendation_gateway=recommendation_gateway,
+            notification_gateway=notification_gateway,
             room_identifier=settings.room_identifier,
             sensor_identifier=settings.sensor_identifier,
         )

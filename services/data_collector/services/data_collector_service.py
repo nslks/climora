@@ -10,8 +10,12 @@ from typing import Any
 from pydantic import ValidationError
 
 from data_collector.domain.fetchers.i_measurement_fetcher import IMeasurementFetcher
-from data_collector.exceptions import MeasurementDecodingError, MeasurementValidationError
-from shared.clients.processor_client import ProcessorClient, ProcessorClientError
+from data_collector.domain.processors.i_measurement_forwarder import IMeasurementForwarder
+from data_collector.exceptions import (
+    MeasurementDecodingError,
+    MeasurementForwardingError,
+    MeasurementValidationError,
+)
 from shared.models.sensor_measurement import SensorMeasurement
 
 logger = logging.getLogger(__name__)
@@ -24,12 +28,12 @@ class DataCollectorService:
         self,
         *,
         fetcher: IMeasurementFetcher,
-        processor_client: ProcessorClient,
+        forwarder: IMeasurementForwarder,
         room_identifier: str | None,
         sensor_identifier: str | None,
     ) -> None:
         self._measurement_fetcher = fetcher
-        self._processor_client = processor_client
+        self._forwarder = forwarder
         self._room_identifier = room_identifier
         self._sensor_identifier = sensor_identifier
 
@@ -44,7 +48,7 @@ class DataCollectorService:
             logger.info("Data collector interrupted, shutting down.")
         finally:
             self._measurement_fetcher.stop_collecting()
-            self._processor_client.close()
+            self._forwarder.close()
 
     def _handle_incoming_payload(self, payload: bytes) -> None:
         try:
@@ -56,9 +60,9 @@ class DataCollectorService:
         payload_dict.setdefault("room_identifier", self._room_identifier)
         payload_dict.setdefault("sensor_identifier", self._sensor_identifier)
         try:
-            self._processor_client.submit_measurement(payload_dict)
+            self._forwarder.forward(payload_dict)
             logger.debug("Forwarded measurement to processor.")
-        except ProcessorClientError:
+        except MeasurementForwardingError:
             logger.exception("Failed to forward measurement to processor service.")
 
     def _build_measurement(self, payload: bytes) -> SensorMeasurement:

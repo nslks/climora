@@ -13,3 +13,7 @@ class MeasurementDecodingError(DataCollectorError):
 
 class MeasurementValidationError(DataCollectorError):
     """Raised when payloads are decoded but fail schema validation."""
+
+
+class MeasurementForwardingError(DataCollectorError):
+    """Raised when forwarding to the processor fails."""
