@@ -139,6 +139,7 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 |----------|----------|
 | MQTT Broker | mqtt://localhost:1883 |
 | Processor | http://localhost:8004 |
+| InfluxDB | http://localhost:8086 |
 | AI-Service | http://localhost:8003 |
 | Ollama | http://localhost:11434 |
 | ntfy | http://localhost:8081 |
@@ -154,12 +155,15 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
    Abonniert das Topic, validiert die Payload per Pydantic und postet sie sofort zum Prozessor (`POST /measurements`).
 
 3. **Processor**  
-   Ruft den AI-Service auf, erhält eine Empfehlung (HEATING/VENTILATION/IDLE) und verschickt eine ntfy-Benachrichtigung, sofern sich die Aktion verändert hat.
+   Ruft den AI-Service auf, erhält eine Empfehlung (HEATING/VENTILATION/IDLE), verschickt eine ntfy-Benachrichtigung bei Aktionswechsel und hält den zuletzt empfangenen Messwert im Speicher.
 
 4. **AI Service + Ollama**  
    Der AI-Service formatiert den Prompt, ruft Ollama auf `http://ollama:11434` auf und liefert das JSON-Ergebnis an den Prozessor zurück.
 
-5. **ntfy**  
+5. **InfluxDB**  
+   Der Processor persistiert den jeweils aktuellen Messwert alle `10s` (konfigurierbar), ohne Buffering.
+
+6. **ntfy**  
    Erhält die Benachrichtigung (Title + Body + Tags) und pusht sie an alle registrierten Geräte.
 
 ---
@@ -170,11 +174,15 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 - Bei jeder neuen Aktion (`RecommendationAction`) wird zusätzlich eine ntfy-Benachrichtigung verschickt. Identische Aktionen werden unterdrückt, um Spam zu verhindern.
 - `GET /measurements/latest-measurement`: liefert die zuletzt empfangene Messung (`SensorMeasurement`) zurück.
 - `GET /measurements/latest`: liefert die zuletzt berechnete Empfehlung (`RecommendationResponse`) zurück.
+- `GET /measurements/history?limit=50`: liest die letzten Messungen aus InfluxDB (neueste zuerst).
+- `GET /measurements/history/range?from=2026-02-10T20:00:00Z&to=2026-02-10T21:00:00Z&limit=500`: liest Messungen im Zeitfenster aus InfluxDB (neueste zuerst).
 
 ### Playground Mode (ohne Sensor)
 
 - `PLAYGROUND_MODE=true`: Data Collector erzeugt Messdaten synthetisch statt MQTT zu abonnieren.
 - `PLAYGROUND_INTERVAL_SECONDS=5`: Intervall für synthetische Messungen in Sekunden.
+- `PROCESSOR_MEASUREMENT_PERSISTENCE_INTERVAL_SECONDS=10`: Intervall für Persistierung des aktuellen Messwerts in InfluxDB.
+- `PROCESSOR_INFLUXDB_URL`, `PROCESSOR_INFLUXDB_TOKEN`, `PROCESSOR_INFLUXDB_ORG`, `PROCESSOR_INFLUXDB_BUCKET`: Verbindungsdaten für InfluxDB.
 
 ---
 

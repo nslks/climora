@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import cast
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from shared.models.recommendation import RecommendationResponse
 from shared.models.sensor_measurement import SensorMeasurement
 
 from processor.services.measurement_processor_service import MeasurementProcessorService
+from processor.services.measurement_persistence_service import MeasurementPersistenceService
 
 router = APIRouter(prefix="/measurements", tags=["measurements"])
 
@@ -41,6 +43,48 @@ def fetch_latest_measurement(request: Request) -> SensorMeasurement:
     return latest
 
 
+@router.get("/history", response_model=list[SensorMeasurement], status_code=status.HTTP_200_OK)
+def fetch_measurement_history(
+    request: Request,
+    limit: int = Query(default=50, ge=1, le=500),
+) -> list[SensorMeasurement]:
+    """Read recent measurements from InfluxDB."""
+    persistence_service = _resolve_persistence_service(request)
+    return persistence_service.fetch_recent_measurements(limit)
+
+
+@router.get("/history/range", response_model=list[SensorMeasurement], status_code=status.HTTP_200_OK)
+def fetch_measurement_history_in_range(
+    request: Request,
+    from_timestamp: datetime = Query(..., alias="from"),
+    to_timestamp: datetime = Query(..., alias="to"),
+    limit: int = Query(default=500, ge=1, le=5000),
+) -> list[SensorMeasurement]:
+    """Read measurements from InfluxDB in a defined time range."""
+    normalized_from = _normalize_timestamp(from_timestamp)
+    normalized_to = _normalize_timestamp(to_timestamp)
+    if normalized_from > normalized_to:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="'from' must be <= 'to'.")
+    persistence_service = _resolve_persistence_service(request)
+    return persistence_service.fetch_measurements_in_range(
+        from_timestamp=normalized_from,
+        to_timestamp=normalized_to,
+        limit=limit,
+    )
+
+
 def _resolve_service(request: Request) -> MeasurementProcessorService:
     """Fetch the measurement processor service from application state."""
     return cast(MeasurementProcessorService, request.app.state.measurement_processor_service)
+
+
+def _resolve_persistence_service(request: Request) -> MeasurementPersistenceService:
+    """Fetch the persistence service from application state."""
+    return cast(MeasurementPersistenceService, request.app.state.measurement_persistence_service)
+
+
+def _normalize_timestamp(timestamp: datetime) -> datetime:
+    """Normalize query timestamps to UTC."""
+    if timestamp.tzinfo is None:
+        return timestamp.replace(tzinfo=timezone.utc)
+    return timestamp.astimezone(timezone.utc)

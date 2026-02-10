@@ -18,6 +18,11 @@ services:
       file: ./infrastructure/ntfy/docker-compose.ntfy.yml
       service: ntfy
 
+  influxdb:
+    extends:
+      file: ./infrastructure/influxdb/docker-compose.influxdb.yml
+      service: influxdb
+
   ai_service:
     build:
       context: ./services/ai_service
@@ -41,6 +46,7 @@ services:
     depends_on:
       - ai_service
       - ntfy
+      - influxdb
     env_file:
       - .env
     restart: unless-stopped
@@ -68,3 +74,4 @@ volumes:
   mosquitto-data:
   mosquitto-log:
   ollama-data:
+  influxdb-data:

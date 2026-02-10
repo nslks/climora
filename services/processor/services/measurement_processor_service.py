@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 
 from processor.domain.notification.i_notification_gateway import INotificationGateway
 from processor.domain.recommendation.i_recommendation_gateway import IRecommendationGateway
@@ -29,6 +30,7 @@ class MeasurementProcessorService:
         self._notification_gateway = notification_gateway
         self._room_identifier = room_identifier
         self._sensor_identifier = sensor_identifier
+        self._state_lock = threading.Lock()
         self._last_action: RecommendationAction | None = None
         self._latest_measurement: SensorMeasurement | None = None
         self._latest_recommendation: RecommendationResponse | None = None
@@ -36,19 +38,27 @@ class MeasurementProcessorService:
     def process_measurement(self, measurement: SensorMeasurement) -> RecommendationResponse:
         """Request a recommendation and trigger notifications when action changes."""
         normalized = self._apply_defaults(measurement)
-        self._latest_measurement = normalized
+        with self._state_lock:
+            self._latest_measurement = normalized.copy(deep=True)
         recommendation = self._recommendation_gateway.request_recommendation(normalized)
         self._maybe_notify(recommendation)
-        self._latest_recommendation = recommendation
+        with self._state_lock:
+            self._latest_recommendation = recommendation.copy(deep=True)
         return recommendation
 
     def get_latest_measurement(self) -> SensorMeasurement | None:
         """Return the most recently received measurement, if any."""
-        return self._latest_measurement
+        with self._state_lock:
+            if self._latest_measurement is None:
+                return None
+            return self._latest_measurement.copy(deep=True)
 
     def get_latest_recommendation(self) -> RecommendationResponse | None:
         """Return the most recently computed recommendation, if any."""
-        return self._latest_recommendation
+        with self._state_lock:
+            if self._latest_recommendation is None:
+                return None
+            return self._latest_recommendation.copy(deep=True)
 
     def close(self) -> None:
         """Dispose underlying gateways."""

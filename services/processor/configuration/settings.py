@@ -22,6 +22,16 @@ class ProcessorSettings(BaseSettings):
     ntfy_password: str | None = Field(default=None, env="PROCESSOR_NTFY_PASSWORD")
     ntfy_timeout_seconds: float = Field(default=5.0, env="PROCESSOR_NTFY_TIMEOUT_SECONDS")
 
+    influxdb_url: str = Field(default="http://influxdb:8086", env="PROCESSOR_INFLUXDB_URL")
+    influxdb_token: str = Field(default="climora-local-token", env="PROCESSOR_INFLUXDB_TOKEN")
+    influxdb_org: str = Field(default="climora", env="PROCESSOR_INFLUXDB_ORG")
+    influxdb_bucket: str = Field(default="climora", env="PROCESSOR_INFLUXDB_BUCKET")
+    influxdb_timeout_seconds: float = Field(default=5.0, env="PROCESSOR_INFLUXDB_TIMEOUT_SECONDS")
+    measurement_persistence_interval_seconds: float = Field(
+        default=10.0,
+        env="PROCESSOR_MEASUREMENT_PERSISTENCE_INTERVAL_SECONDS",
+    )
+
     room_identifier: str | None = Field(default=None, env="PROCESSOR_ROOM_IDENTIFIER")
     sensor_identifier: str | None = Field(default=None, env="PROCESSOR_SENSOR_IDENTIFIER")
 

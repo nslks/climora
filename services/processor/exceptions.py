@@ -13,3 +13,7 @@ class RecommendationGatewayError(ProcessorError):
 
 class NotificationGatewayError(ProcessorError):
     """Raised when dispatching notifications fails."""
+
+
+class MeasurementRepositoryError(ProcessorError):
+    """Raised when reading/writing persisted measurements fails."""
