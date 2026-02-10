@@ -9,12 +9,12 @@ from fastapi import FastAPI
 from shared.clients.ai_service_client import AIServiceClient
 from shared.clients.ntfy_client import NtfyClient
 
-from ..api.error_handlers import register_error_handlers
-from ..api.routes.measurement_routes import router as measurement_router
-from ..configuration.settings import ProcessorSettings, get_settings
-from ..domain.gateways.ai_recommendation_gateway import AIRecommendationGateway
-from ..domain.gateways.ntfy_notification_gateway import NtfyNotificationGateway
-from ..services.measurement_processor_service import MeasurementProcessorService
+from processor.api.error_handlers import register_error_handlers
+from processor.api.routes.measurement_routes import router as measurement_router
+from processor.configuration.settings import ProcessorSettings, get_settings
+from processor.domain.recommendation.ai_recommendation_gateway import AIRecommendationGateway
+from processor.domain.notification.ntfy_notification_gateway import NtfyNotificationGateway
+from processor.services.measurement_processor_service import MeasurementProcessorService
 
 logger = logging.getLogger(__name__)
 

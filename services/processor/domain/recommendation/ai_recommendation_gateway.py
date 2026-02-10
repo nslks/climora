@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from processor.domain.gateways.i_recommendation_gateway import IRecommendationGateway
+from processor.domain.recommendation.i_recommendation_gateway import IRecommendationGateway
 from processor.exceptions import RecommendationGatewayError
 from shared.clients.ai_service_client import AIServiceClient, AIServiceClientError
 from shared.models.recommendation import RecommendationResponse

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Iterable
 
-from processor.domain.gateways.i_notification_gateway import INotificationGateway
+from processor.domain.notification.i_notification_gateway import INotificationGateway
 from processor.exceptions import NotificationGatewayError
 from shared.clients.ntfy_client import NtfyClient, NtfyClientError
 

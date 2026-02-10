@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from services.ai_service.domain.i_ollama_gateway import IOllamaGateway
-from services.ai_service.domain.ollama_client import OllamaClient, OllamaClientError
+from ai_service.domain.i_ollama_gateway import IOllamaGateway
+from ai_service.domain.ollama_client import OllamaClient, OllamaClientError
 from ai_service.exceptions import OllamaGenerationError
 
 
