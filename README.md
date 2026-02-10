@@ -168,6 +168,13 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 
 - `POST /measurements`: nimmt eine `SensorMeasurement` entgegen (Temperatur, Luftfeuchtigkeit, Timestamp + optionale Raum-/Sensor IDs), ruft Ollama via AI-Service auf und gibt die Recommendation (`RecommendationResponse`) zurück.
 - Bei jeder neuen Aktion (`RecommendationAction`) wird zusätzlich eine ntfy-Benachrichtigung verschickt. Identische Aktionen werden unterdrückt, um Spam zu verhindern.
+- `GET /measurements/latest-measurement`: liefert die zuletzt empfangene Messung (`SensorMeasurement`) zurück.
+- `GET /measurements/latest`: liefert die zuletzt berechnete Empfehlung (`RecommendationResponse`) zurück.
+
+### Playground Mode (ohne Sensor)
+
+- `PLAYGROUND_MODE=true`: Data Collector erzeugt Messdaten synthetisch statt MQTT zu abonnieren.
+- `PLAYGROUND_INTERVAL_SECONDS=5`: Intervall für synthetische Messungen in Sekunden.
 
 ---
 

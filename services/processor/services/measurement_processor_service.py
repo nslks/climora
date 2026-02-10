@@ -30,15 +30,21 @@ class MeasurementProcessorService:
         self._room_identifier = room_identifier
         self._sensor_identifier = sensor_identifier
         self._last_action: RecommendationAction | None = None
+        self._latest_measurement: SensorMeasurement | None = None
         self._latest_recommendation: RecommendationResponse | None = None
 
     def process_measurement(self, measurement: SensorMeasurement) -> RecommendationResponse:
         """Request a recommendation and trigger notifications when action changes."""
         normalized = self._apply_defaults(measurement)
+        self._latest_measurement = normalized
         recommendation = self._recommendation_gateway.request_recommendation(normalized)
         self._maybe_notify(recommendation)
         self._latest_recommendation = recommendation
         return recommendation
+
+    def get_latest_measurement(self) -> SensorMeasurement | None:
+        """Return the most recently received measurement, if any."""
+        return self._latest_measurement
 
     def get_latest_recommendation(self) -> RecommendationResponse | None:
         """Return the most recently computed recommendation, if any."""

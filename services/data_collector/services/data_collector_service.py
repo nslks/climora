@@ -57,8 +57,10 @@ class DataCollectorService:
             logger.debug("Discarded invalid payload.", extra={"error": str(exc)})
             return
         payload_dict = self._serialize_measurement(measurement)
-        payload_dict.setdefault("room_identifier", self._room_identifier)
-        payload_dict.setdefault("sensor_identifier", self._sensor_identifier)
+        if payload_dict.get("room_identifier") is None:
+            payload_dict["room_identifier"] = self._room_identifier
+        if payload_dict.get("sensor_identifier") is None:
+            payload_dict["sensor_identifier"] = self._sensor_identifier
         try:
             self._forwarder.forward(payload_dict)
             logger.debug("Forwarded measurement to processor.")

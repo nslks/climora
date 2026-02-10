@@ -31,6 +31,16 @@ def fetch_latest_recommendation(request: Request) -> RecommendationResponse:
     return latest
 
 
+@router.get("/latest-measurement", response_model=SensorMeasurement, status_code=status.HTTP_200_OK)
+def fetch_latest_measurement(request: Request) -> SensorMeasurement:
+    """Return the most recent measurement payload or 404 if nothing received yet."""
+    service = _resolve_service(request)
+    latest = service.get_latest_measurement()
+    if latest is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No measurement received yet.")
+    return latest
+
+
 def _resolve_service(request: Request) -> MeasurementProcessorService:
     """Fetch the measurement processor service from application state."""
     return cast(MeasurementProcessorService, request.app.state.measurement_processor_service)
