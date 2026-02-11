@@ -30,12 +30,17 @@ def process_measurement(
 @router.get("/latest", response_model=RecommendationResponse, status_code=status.HTTP_200_OK)
 def fetch_latest_recommendation(
     service: MeasurementProcessorService = Depends(get_measurement_processor_service),
+    persistence_service: MeasurementPersistenceService = Depends(get_measurement_persistence_service),
 ) -> RecommendationResponse:
-    """Return the most recent recommendation or 404 if nothing processed yet."""
+    """Return latest recommendation, rebuilding from persisted data when needed."""
     latest = service.get_latest_recommendation()
-    if latest is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No measurements processed yet.")
-    return latest
+    if latest is not None:
+        return latest
+
+    recent_measurements = persistence_service.fetch_recent_measurements(limit=1)
+    if not recent_measurements:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No measurements available yet.")
+    return service.rebuild_recommendation(recent_measurements[0])
 
 
 @router.get("/latest-measurement", response_model=SensorMeasurement, status_code=status.HTTP_200_OK)

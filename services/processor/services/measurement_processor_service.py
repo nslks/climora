@@ -46,6 +46,15 @@ class MeasurementProcessorService:
             self._latest_recommendation = recommendation.copy(deep=True)
         return recommendation
 
+    def rebuild_recommendation(self, measurement: SensorMeasurement) -> RecommendationResponse:
+        """Recompute recommendation from a measurement without dispatching notifications."""
+        normalized = self._apply_defaults(measurement)
+        recommendation = self._recommendation_gateway.request_recommendation(normalized)
+        with self._state_lock:
+            self._latest_measurement = normalized.copy(deep=True)
+            self._latest_recommendation = recommendation.copy(deep=True)
+        return recommendation
+
     def get_latest_measurement(self) -> SensorMeasurement | None:
         """Return the most recently received measurement, if any."""
         with self._state_lock:
