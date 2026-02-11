@@ -68,40 +68,66 @@ Eine detaillierte Beschreibung der erwarteten Service-Struktur (Ordner, Verantwo
 ### Voraussetzungen
 
 - Docker installiert
-- `.env` Datei angelegt (siehe Beispiel)
+- Root-`.env` für geteilte Infrastrukturwerte angelegt
+- Service-spezifische `.env` Dateien angelegt:
+  - `services/ai_service/.env`
+  - `services/processor/.env`
+  - `services/data_collector/.env`
 
-### Beispiel `.env`
+### Beispiel Root `.env` (nur shared)
 
 ```bash
-# MQTT / Data Collector
-MQTT_BROKER=mosquitto
-MQTT_PORT=1883
-MQTT_TOPIC=sensor/#
-MQTT_CLIENT_ID=climora-data-collector
-# Optional Overrides
-# PROCESSOR_URL=http://processor:8004
-# PROCESSOR_TIMEOUT_SECONDS=5
-# ROOM_IDENTIFIER=LivingRoom
-# SENSOR_IDENTIFIER=Sensor-1
-
-# AI Service / Ollama
-AI_SERVICE_OLLAMA_BASE_URL=http://ollama:11434
-AI_SERVICE_OLLAMA_MODEL=llama3.1:8b
-
-# Processor / ntfy
-PROCESSOR_AI_SERVICE_URL=http://ai_service:8003
-PROCESSOR_AI_SERVICE_TIMEOUT_SECONDS=5
-PROCESSOR_NTFY_BASE_URL=http://ntfy
-PROCESSOR_NTFY_TOPIC=climora-alerts
-# PROCESSOR_NTFY_USERNAME=ntfy
-# PROCESSOR_NTFY_PASSWORD=secret
-# PROCESSOR_ROOM_IDENTIFIER=LivingRoom
-# PROCESSOR_SENSOR_IDENTIFIER=Sensor-1
-
 # ntfy Server (für öffentlich erreichbares UI)
 NTFY_BASE_URL=http://192.168.0.189:8081
 NTFY_PORT=8081
 NTFY_UPSTREAM_BASE_URL=https://ntfy.sh
+
+# InfluxDB Bootstrap
+INFLUXDB_PORT=8086
+DOCKER_INFLUXDB_INIT_MODE=setup
+DOCKER_INFLUXDB_INIT_USERNAME=admin
+DOCKER_INFLUXDB_INIT_PASSWORD=climoraadmin
+DOCKER_INFLUXDB_INIT_ORG=climora
+DOCKER_INFLUXDB_INIT_BUCKET=climora
+DOCKER_INFLUXDB_INIT_TOKEN=climora-local-token
+```
+
+### Beispiel `services/ai_service/.env`
+
+```bash
+AI_SERVICE_BASE_URL=http://ollama:11434
+AI_SERVICE_MODEL=llama3.1:8b
+```
+
+### Beispiel `services/processor/.env`
+
+```bash
+PROCESSOR_AI_SERVICE_URL=http://ai_service:8003
+PROCESSOR_AI_SERVICE_TIMEOUT_SECONDS=5
+PROCESSOR_NTFY_BASE_URL=http://ntfy
+PROCESSOR_NTFY_TOPIC=climora-alerts
+PROCESSOR_INFLUXDB_URL=http://influxdb:8086
+PROCESSOR_INFLUXDB_TOKEN=climora-local-token
+PROCESSOR_INFLUXDB_ORG=climora
+PROCESSOR_INFLUXDB_BUCKET=climora
+PROCESSOR_MEASUREMENT_PERSISTENCE_INTERVAL_SECONDS=10
+PROCESSOR_ROOM_IDENTIFIER=LivingRoom
+PROCESSOR_SENSOR_IDENTIFIER=Sensor-1
+```
+
+### Beispiel `services/data_collector/.env`
+
+```bash
+MQTT_BROKER=mosquitto
+MQTT_PORT=1883
+MQTT_TOPIC=sensor/#
+MQTT_CLIENT_ID=climora-data-collector
+PROCESSOR_URL=http://processor:8004
+PROCESSOR_TIMEOUT_SECONDS=5
+ROOM_IDENTIFIER=LivingRoom
+SENSOR_IDENTIFIER=Sensor-1
+PLAYGROUND_MODE=true
+PLAYGROUND_INTERVAL_SECONDS=5
 ```
 
 ### Starten
