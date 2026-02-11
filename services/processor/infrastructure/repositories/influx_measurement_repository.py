@@ -8,7 +8,7 @@ from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.exceptions import InfluxDBError
 from influxdb_client.client.write_api import SYNCHRONOUS
 
-from services.processor.infrastructure.repositories.i_measurement_repository import IMeasurementRepository
+from processor.infrastructure.repositories.i_measurement_repository import IMeasurementRepository
 from processor.exceptions import MeasurementRepositoryError
 from shared.models.sensor_measurement import SensorMeasurement
 
