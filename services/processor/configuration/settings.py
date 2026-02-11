@@ -14,7 +14,7 @@ class ProcessorSettings(BaseSettings):
     app_version: str = Field(default="0.1.0", env="PROCESSOR_APP_VERSION")
 
     ai_service_base_url: str = Field(default="http://ai_service:8003", env="PROCESSOR_AI_SERVICE_URL")
-    ai_service_timeout_seconds: float = Field(default=5.0, env="PROCESSOR_AI_SERVICE_TIMEOUT_SECONDS")
+    ai_service_timeout_seconds: float = Field(default=30.0, env="PROCESSOR_AI_SERVICE_TIMEOUT_SECONDS")
 
     ntfy_base_url: str = Field(default="http://ntfy", env="PROCESSOR_NTFY_BASE_URL")
     ntfy_topic: str = Field(..., env="PROCESSOR_NTFY_TOPIC")

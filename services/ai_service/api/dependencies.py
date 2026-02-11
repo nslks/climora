@@ -22,8 +22,11 @@ def get_llm_client() -> ILLMClient:
     if not base_url or not model:
         logger.error("Missing configuration", extra={"base_url": bool(base_url), "model": bool(model)})
         raise AIServiceConfigurationError("AI_SERVICE_BASE_URL and AI_SERVICE_MODEL must be configured.")
-    logger.info("Configured client", extra={"base_url": base_url, "model": model})
-    return OllamaLLMClient(base_url=base_url, model=model)
+    logger.info(
+        "Configured client",
+        extra={"base_url": base_url, "model": model, "timeout_seconds": settings.timeout_seconds},
+    )
+    return OllamaLLMClient(base_url=base_url, model=model, timeout_seconds=settings.timeout_seconds)
 
 
 @lru_cache(maxsize=1)
