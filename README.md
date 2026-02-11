@@ -96,7 +96,7 @@ DOCKER_INFLUXDB_INIT_TOKEN=climora-local-token
 
 ```bash
 AI_SERVICE_BASE_URL=http://ollama:11434
-AI_SERVICE_MODEL=llama3.1:8b
+AI_SERVICE_MODEL=llama3.2:1b
 ```
 
 ### Beispiel `services/processor/.env`
@@ -143,7 +143,7 @@ docker compose up --build
 Nur beim ersten Setup muss das gewünschte Modell einmal in den bereits laufenden `ollama`-Container geladen werden:
 
 ```bash
-docker compose exec ollama ollama pull llama3.1:8b
+docker compose exec ollama ollama pull llama3.2:1b
 ```
 
 `docker compose exec ...` funktioniert nur, wenn der Container bereits läuft.

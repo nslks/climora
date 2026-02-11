@@ -14,7 +14,7 @@ class AIServiceSettings(BaseSettings):
     app_version: str = Field(default="0.1.0", env="AI_SERVICE_APP_VERSION")
 
     base_url: str | None = Field(default=None, env="AI_SERVICE_BASE_URL")
-    model: str | None = Field(default=None, env="AI_SERVICE_MODEL")
+    model: str | None = Field(default="llama3.2:1b", env="AI_SERVICE_MODEL")
 
 
 @lru_cache()
