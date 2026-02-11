@@ -1,9 +1,9 @@
-"""Interfaces for retrieving sensor measurements from various sources."""
+"""Interfaces for retrieving sensor measurements from different sources."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Callable, Protocol
+from typing import Protocol
 
 
 class MessageHandler(Protocol):
@@ -12,8 +12,8 @@ class MessageHandler(Protocol):
     def __call__(self, payload: bytes) -> None: ...
 
 
-class IMeasurementFetcher(ABC):
-    """Abstracts how raw measurement payloads are retrieved."""
+class IMeasurementSource(ABC):
+    """Abstracts how raw measurement payloads are delivered to the collector."""
 
     @abstractmethod
     def start_collecting(self, handler: MessageHandler) -> None:

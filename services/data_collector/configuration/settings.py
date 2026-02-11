@@ -24,11 +24,6 @@ class DataCollectorSettings(BaseSettings):
     playground_mode: bool = Field(default=False, env="PLAYGROUND_MODE")
     playground_interval_seconds: float = Field(default=5.0, env="PLAYGROUND_INTERVAL_SECONDS")
 
-    class Config:
-        env_file = None
-        case_sensitive = False
-
-
 @lru_cache()
 def get_settings() -> DataCollectorSettings:
     """Return cached data collector settings."""

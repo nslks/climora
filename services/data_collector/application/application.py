@@ -5,12 +5,11 @@ from __future__ import annotations
 import logging
 
 from data_collector.configuration.settings import DataCollectorSettings, get_settings
-from data_collector.domain.fetchers.i_measurement_fetcher import IMeasurementFetcher
-from data_collector.domain.processors.processor_measurement_forwarder import ProcessorMeasurementForwarder
-from data_collector.domain.fetchers.mqtt_measurement_fetcher import MqttMeasurementFetcher
-from data_collector.domain.fetchers.playground_measurement_fetcher import PlaygroundMeasurementFetcher
+from data_collector.data_sources.i_measurement_source import IMeasurementSource
+from data_collector.data_sources.mqtt_measurement_source import MqttMeasurementSource
+from data_collector.data_sources.playground_measurement_source import PlaygroundMeasurementSource
+from data_collector.infrastructure.processor_measurement_sender import ProcessorMeasurementSender
 from data_collector.services.data_collector_service import DataCollectorService
-from shared.clients.processor_client import ProcessorClient
 
 logger = logging.getLogger(__name__)
 
@@ -18,15 +17,14 @@ logger = logging.getLogger(__name__)
 def run_data_collector() -> None:
     """Bootstrap the data collector application and start processing."""
     settings = get_settings()
-    processor_client = ProcessorClient(
+    measurement_sender = ProcessorMeasurementSender(
         base_url=settings.processor_base_url,
         timeout_seconds=settings.processor_timeout_seconds,
     )
-    forwarder = ProcessorMeasurementForwarder(processor_client)
-    fetcher = _build_fetcher(settings)
+    measurement_source = _build_measurement_source(settings)
     service = DataCollectorService(
-        fetcher=fetcher,
-        forwarder=forwarder,
+        measurement_source=measurement_source,
+        measurement_sender=measurement_sender,
         room_identifier=settings.room_identifier,
         sensor_identifier=settings.sensor_identifier,
     )
@@ -34,11 +32,11 @@ def run_data_collector() -> None:
     service.start()
 
 
-def _build_fetcher(settings: DataCollectorSettings) -> IMeasurementFetcher:
-    """Instantiate the configured measurement fetcher."""
+def _build_measurement_source(settings: DataCollectorSettings) -> IMeasurementSource:
+    """Instantiate the configured measurement source."""
     if settings.playground_mode:
-        return PlaygroundMeasurementFetcher(interval_seconds=settings.playground_interval_seconds)
-    return MqttMeasurementFetcher(
+        return PlaygroundMeasurementSource(interval_seconds=settings.playground_interval_seconds)
+    return MqttMeasurementSource(
         broker_host=settings.mqtt_broker_host,
         broker_port=settings.mqtt_broker_port,
         topic_filter=settings.mqtt_topic_filter,

@@ -1,4 +1,4 @@
-"""MQTT-based implementation for retrieving measurement payloads."""
+"""MQTT-based measurement source implementation."""
 
 from __future__ import annotations
 
@@ -7,15 +7,12 @@ from typing import Optional
 
 from paho.mqtt.client import Client, MQTTMessage
 
-from data_collector.domain.fetchers.i_measurement_fetcher import (
-    IMeasurementFetcher,
-    MessageHandler,
-)
+from data_collector.data_sources.i_measurement_source import IMeasurementSource, MessageHandler
 
 logger = logging.getLogger(__name__)
 
 
-class MqttMeasurementFetcher(IMeasurementFetcher):
+class MqttMeasurementSource(IMeasurementSource):
     """Retrieves payloads from an MQTT broker."""
 
     def __init__(
@@ -53,30 +50,18 @@ class MqttMeasurementFetcher(IMeasurementFetcher):
         self._handler = None
 
     def _on_connect(self, client: Client, _userdata: object, _flags: dict, rc: int) -> None:
-        """Subscribe to configured topics after establishing connection."""
         if rc == 0:
             logger.info("Connected to MQTT broker, subscribing to topics.", extra={"topic_filter": self._topic_filter})
             client.subscribe(self._topic_filter)
             return
         logger.error("Failed to connect to MQTT broker.", extra={"return_code": rc})
 
-    def _on_message(
-        self,
-        _client: Client,
-        _userdata: object,
-        message: MQTTMessage,
-    ) -> None:
-        """Pass payloads to the registered handler."""
+    def _on_message(self, _client: Client, _userdata: object, message: MQTTMessage) -> None:
         if not self._handler:
             logger.debug("Received MQTT payload without handler.")
             return
         self._handler(message.payload)
 
-    def _on_disconnect(
-        self,
-        _client: Client,
-        _userdata: object,
-        rc: int,
-    ) -> None:
+    def _on_disconnect(self, _client: Client, _userdata: object, rc: int) -> None:
         self._handler = None
         logger.info("Disconnected from MQTT broker.", extra={"return_code": rc})

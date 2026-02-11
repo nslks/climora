@@ -2,7 +2,7 @@
 
 **Climora** ist ein containerisiertes IoT-System, das Sensordaten (Temperatur & Luftfeuchtigkeit) entgegennimmt und unmittelbar Handlungsempfehlungen generiert.  
 
-Die Messwerte stammen von **Arduino-basierten Sensoren** (nicht Teil dieses Projekts), werden per **MQTT** übertragen und sofort an einen Prozessor-Service weitergeleitet. Dort entscheidet eine lokale Ollama-Instanz, ob gelüftet oder geheizt werden soll, und verschickt eine ntfy-Benachrichtigung.
+Die Messwerte stammen von **Arduino-basierten Sensoren** (nicht Teil dieses Projekts) und werden per **MQTT** übertragen. Der `data_collector` übernimmt ausschließlich Ingestion: Payloads lesen (MQTT oder Playground), validieren/anreichern und an den `processor` weiterleiten. Dort entscheidet eine lokale Ollama-Instanz, ob gelüftet oder geheizt werden soll, und verschickt eine ntfy-Benachrichtigung.
 
 ## 🧰 Tech Stack
 
@@ -29,7 +29,7 @@ climora/
 ├── .env                        # Gemeinsame Umgebungsvariablen
 │
 ├── services/
-│   ├── data_collector/         # Liest MQTT und leitet Messungen an den Prozessor weiter
+│   ├── data_collector/         # Ingestion-Service: MQTT/Playground -> Validierung -> Processor
 │   ├── ai_service/             # FastAPI-Service als Proxy zur lokalen Ollama-Instanz
 │   └── processor/              # HTTP-Service, der Ollama & ntfy orchestriert
 │
@@ -54,7 +54,7 @@ Eine detaillierte Beschreibung der erwarteten Service-Struktur (Ordner, Verantwo
 
 | Service | Beschreibung | Technologie |
 |----------|---------------|--------------|
-| **data_collector** | Abonniert MQTT-Topics und postet validierte Messwerte an den Prozessor | Python (paho-mqtt, httpx) |
+| **data_collector** | Liest Mess-Payloads (MQTT/Playground), validiert sie und sendet sie an den Prozessor | Python (paho-mqtt, httpx) |
 | **processor** | HTTP-Service, der Messungen annimmt, Ollama befragt und ntfy-Benachrichtigungen auslöst | FastAPI |
 | **ai_service** | Stellt ein HTTP-Interface zur lokalen Ollama-Instanz bereit | FastAPI |
 | **ollama** | Lokale LLM-Inferenz als Backend | Ollama |
@@ -153,7 +153,7 @@ Wer VS Code oder eine andere Dev-Container-kompatible IDE nutzt, kann pro Servic
 
 | Devcontainer | Pfad | Zweck |
 |--------------|------|-------|
-| Data Collector | `services/data_collector/.devcontainer/devcontainer.json` | MQTT-Collector schnell testen |
+| Data Collector | `services/data_collector/.devcontainer/devcontainer.json` | Ingestion-Service (MQTT/Playground) schnell testen |
 | Processor | `services/processor/.devcontainer/devcontainer.json` | FastAPI-Service für Benachrichtigungen |
 | AI Service | `services/ai_service/.devcontainer/devcontainer.json` | FastAPI/Ollama-Proxy |
 
@@ -178,7 +178,7 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
    Der Sensor publiziert Temperatur- & Feuchtigkeitsdaten auf dem MQTT-Topic `sensor/#`.
 
 2. **Data Collector**  
-   Abonniert das Topic, validiert die Payload per Pydantic und postet sie sofort zum Prozessor (`POST /measurements`).
+   Liest Payloads aus MQTT (oder Playground), validiert sie per Pydantic, ergänzt fehlende `room_identifier`/`sensor_identifier` und sendet sie sofort zum Prozessor (`POST /measurements`).
 
 3. **Processor**  
    Ruft den AI-Service auf, erhält eine Empfehlung (HEATING/VENTILATION/IDLE), verschickt eine ntfy-Benachrichtigung bei Aktionswechsel und hält den zuletzt empfangenen Messwert im Speicher.
@@ -207,8 +207,19 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 
 - `PLAYGROUND_MODE=true`: Data Collector erzeugt Messdaten synthetisch statt MQTT zu abonnieren.
 - `PLAYGROUND_INTERVAL_SECONDS=5`: Intervall für synthetische Messungen in Sekunden.
-- `PROCESSOR_MEASUREMENT_PERSISTENCE_INTERVAL_SECONDS=10`: Intervall für Persistierung des aktuellen Messwerts in InfluxDB.
-- `PROCESSOR_INFLUXDB_URL`, `PROCESSOR_INFLUXDB_TOKEN`, `PROCESSOR_INFLUXDB_ORG`, `PROCESSOR_INFLUXDB_BUCKET`: Verbindungsdaten für InfluxDB.
+
+### Data Collector intern (aktuelle Struktur)
+
+Der Service ist absichtlich minimal gehalten und macht nur Ingestion:
+
+- `data_sources/`
+  - `mqtt_measurement_source.py`: liest Bytes aus MQTT
+  - `playground_measurement_source.py`: erzeugt synthetische Bytes im Intervall
+  - `i_measurement_source.py`: gemeinsames Source-Interface
+- `services/data_collector_service.py`
+  - decodiert JSON, validiert gegen `SensorMeasurement`, ergänzt fehlende Metadaten
+- `infrastructure/processor_measurement_sender.py`
+  - sendet validierte Messungen via HTTP an `POST /measurements` im Processor
 
 ---
 
