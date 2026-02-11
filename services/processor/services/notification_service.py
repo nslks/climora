@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from shared.models.recommendation import RecommendationAction, RecommendationResponse
+from processor.domain.models.recommendation import RecommendationAction, RecommendationResponse
 
 
 def build_notification_message(recommendation: RecommendationResponse) -> tuple[str, str, list[str]]:

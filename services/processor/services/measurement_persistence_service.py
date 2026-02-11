@@ -7,7 +7,7 @@ import threading
 from collections.abc import Callable
 from datetime import datetime
 
-from processor.domain.repositories.i_measurement_repository import IMeasurementRepository
+from services.processor.infrastructure.repositories.i_measurement_repository import IMeasurementRepository
 from processor.exceptions import MeasurementRepositoryError
 from shared.models.sensor_measurement import SensorMeasurement
 

@@ -7,7 +7,7 @@ from typing import Iterable
 
 from processor.domain.notification.i_notification_gateway import INotificationGateway
 from processor.exceptions import NotificationGatewayError
-from shared.clients.ntfy_client import NtfyClient, NtfyClientError
+from processor.infrastructure.clients.ntfy_client import NtfyClient, NtfyClientError
 
 logger = logging.getLogger(__name__)
 

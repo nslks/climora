@@ -6,8 +6,8 @@ import logging
 
 from processor.domain.recommendation.i_recommendation_gateway import IRecommendationGateway
 from processor.exceptions import RecommendationGatewayError
-from shared.clients.ai_service_client import AIServiceClient, AIServiceClientError
-from shared.models.recommendation import RecommendationResponse
+from processor.domain.models.recommendation import RecommendationResponse
+from processor.infrastructure.clients.ai_service_client import AIServiceClient, AIServiceClientError
 from shared.models.sensor_measurement import SensorMeasurement
 
 logger = logging.getLogger(__name__)

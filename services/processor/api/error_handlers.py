@@ -3,9 +3,9 @@
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 
+from processor.infrastructure.clients.ai_service_client import AIServiceClientError
+from processor.infrastructure.clients.ntfy_client import NtfyClientError
 from ..exceptions import MeasurementRepositoryError, NotificationGatewayError, RecommendationGatewayError
-from shared.clients.ai_service_client import AIServiceClientError
-from shared.clients.ntfy_client import NtfyClientError
 
 
 def register_error_handlers(app: FastAPI) -> None:

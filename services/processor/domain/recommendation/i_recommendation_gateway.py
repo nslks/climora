@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from shared.models.recommendation import RecommendationResponse
+from processor.domain.models.recommendation import RecommendationResponse
 from shared.models.sensor_measurement import SensorMeasurement
 
 

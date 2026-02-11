@@ -1,4 +1,4 @@
-"""Pydantic models shared between services for recommendations."""
+"""Pydantic recommendation models used by the processor domain."""
 
 from __future__ import annotations
 
@@ -51,4 +51,3 @@ class RecommendationResponse(BaseModel):
         default_factory=lambda: datetime.now(timezone.utc),
         description="Generation timestamp in UTC.",
     )
-

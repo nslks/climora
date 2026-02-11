@@ -6,8 +6,8 @@ import logging
 import threading
 
 from processor.domain.notification.i_notification_gateway import INotificationGateway
+from processor.domain.models.recommendation import RecommendationAction, RecommendationResponse
 from processor.domain.recommendation.i_recommendation_gateway import IRecommendationGateway
-from shared.models.recommendation import RecommendationAction, RecommendationResponse
 from shared.models.sensor_measurement import SensorMeasurement
 
 from .notification_service import build_notification_message
