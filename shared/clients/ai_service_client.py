@@ -36,11 +36,11 @@ class AIServiceClient:
         )
         body = {
             "prompt": prompt,
-            "format": "json",
+            "response_format": "json",
             "stream": False,
         }
         try:
-            response = self._client.post("/ollama/generate", json=body)
+            response = self._client.post("/generation/generate", json=body)
             response.raise_for_status()
         except httpx.HTTPError as exc:  # pragma: no cover - trivial wrapper
             raise AIServiceClientError("Failed to contact AI service.") from exc
@@ -55,10 +55,10 @@ class AIServiceClient:
         self._client.close()
 
     def _extract_payload(self, response: httpx.Response) -> dict:
-        """Parse the Ollama response into a recommendation dictionary."""
+        """Parse the generation response into a recommendation dictionary."""
         try:
             response_json = response.json()
-            raw_payload = response_json["response"]
+            raw_payload = response_json["output_text"]
             return json.loads(raw_payload)
         except (ValueError, KeyError, json.JSONDecodeError) as exc:
             raise AIServiceClientError("AI service response body malformed.") from exc

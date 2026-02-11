@@ -5,9 +5,9 @@ class AIServiceError(Exception):
     """Base exception for AI service issues."""
 
 
-class OllamaConfigurationError(AIServiceError):
-    """Raised when mandatory Ollama settings are missing."""
+class AIServiceConfigurationError(AIServiceError):
+    """Raised when mandatory AI service settings are missing."""
 
 
-class OllamaGenerationError(AIServiceError):
-    """Raised when Ollama could not generate a response."""
+class TextGenerationError(AIServiceError):
+    """Raised when the configured LLM client could not generate a response."""

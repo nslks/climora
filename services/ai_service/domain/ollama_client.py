@@ -7,15 +7,13 @@ from typing import Any, Dict
 
 import httpx
 
+from ai_service.domain.i_llm_client import ILLMClient, LLMClientError
+
 logger = logging.getLogger(__name__)
 
 
-class OllamaClientError(RuntimeError):
-    """Raised when the Ollama call fails or returns malformed data."""
-
-
-class OllamaClient:
-    """Thin wrapper around the Ollama REST API."""
+class OllamaLLMClient(ILLMClient):
+    """Ollama implementation of the provider-neutral LLM client."""
 
     def __init__(self, *, base_url: str, model: str, timeout_seconds: float = 10.0) -> None:
         self._base_url = base_url.rstrip("/")
@@ -26,18 +24,18 @@ class OllamaClient:
         self,
         *,
         prompt: str,
-        format: str | None = None,
+        response_format: str | None = None,
         stream: bool = False,
         options: Dict[str, Any] | None = None,
-    ) -> Dict[str, Any]:
-        """Send a prompt to Ollama and return the raw JSON response."""
+    ) -> str:
+        """Send a prompt to Ollama and return generated text."""
         payload: Dict[str, Any] = {
             "model": self._model,
             "prompt": prompt,
             "stream": stream,
         }
-        if format:
-            payload["format"] = format
+        if response_format:
+            payload["format"] = response_format
         if options:
             payload["options"] = options
 
@@ -50,9 +48,13 @@ class OllamaClient:
             response.raise_for_status()
         except httpx.HTTPError as exc:
             logger.error("Failed to reach Ollama endpoint", exc_info=exc)
-            raise OllamaClientError("Failed to contact Ollama.") from exc
+            raise LLMClientError("Failed to contact configured LLM provider.") from exc
         try:
-            return response.json()
-        except ValueError as exc:
-            logger.error("Ollama returned non-JSON response")
-            raise OllamaClientError("Ollama returned invalid JSON.") from exc
+            response_json = response.json()
+            generated_text = response_json["response"]
+            if not isinstance(generated_text, str):
+                raise TypeError("response must be a string")
+            return generated_text
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.error("LLM provider returned malformed JSON response")
+            raise LLMClientError("LLM provider returned malformed response.") from exc
