@@ -9,6 +9,9 @@ Die Messwerte stammen von **Arduino-basierten Sensoren** (nicht Teil dieses Proj
 - **Python**
   - **FastAPI**
   - **paho-mqtt**
+  - **httpx**
+  - **Pydantic**
+- **InfluxDB**
 - **Ollama**
 - **ntfy**
 - **Docker / Docker Compose**
@@ -23,9 +26,9 @@ Cooles Bild Folgt
 
 ## 🏗️ Projektstruktur
 
-```
+``` 
 climora/
-├── docker-compose.yml          # Orchestriert das Starten der Anendung
+├── docker-compose.yml          # Orchestriert das Starten der Anwendung
 ├── .env                        # Gemeinsame Umgebungsvariablen
 │
 ├── services/
@@ -33,20 +36,17 @@ climora/
 │   ├── ai_service/             # FastAPI-Service als Proxy zur lokalen Ollama-Instanz
 │   └── processor/              # HTTP-Service, der Ollama & ntfy orchestriert
 │
-├── shared/                     # Gemeinsame Codebasis (Models, Utils, Config)
-│   ├── models/
-│   ├── config/
-│   └── utils/
+├── shared/                     # Gemeinsame service-übergreifende Modelle
+│   └── models/                 # Nur service-übergreifende Modelle (z. B. SensorMeasurement)
 │
 ├── infrastructure/             # Externe Infrastruktur (lokal per Compose)
-│   ├── mosquitto/              # MQTT Broker Config
+│   ├── influxdb/               # InfluxDB Compose-Erweiterung
 │   ├── ntfy/                   # ntfy Server
-│   └── ollama/                 # Ollama Setup
+│   ├── ollama/                 # Ollama Setup
+│   └── secrets/                # lokale Secrets/Configs für Infrastruktur
 │
 └── README.md
 ```
-
-Eine detaillierte Beschreibung der erwarteten Service-Struktur (Ordner, Verantwortlichkeiten, Konventionen) findet sich in `docs/service-structure.md`.
 
 ---
 
@@ -147,18 +147,6 @@ docker compose exec ollama ollama pull llama3.1:8b
 
 Der AI-Service erreicht die lokale Instanz anschließend unter `http://ollama:11434`.
 
-### Entwickeln mit Dev Containern
-
-Wer VS Code oder eine andere Dev-Container-kompatible IDE nutzt, kann pro Service einen eigenen Container öffnen:
-
-| Devcontainer | Pfad | Zweck |
-|--------------|------|-------|
-| Data Collector | `services/data_collector/.devcontainer/devcontainer.json` | Ingestion-Service (MQTT/Playground) schnell testen |
-| Processor | `services/processor/.devcontainer/devcontainer.json` | FastAPI-Service für Benachrichtigungen |
-| AI Service | `services/ai_service/.devcontainer/devcontainer.json` | FastAPI/Ollama-Proxy |
-
-Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jeweiligen `requirements.txt` und forwarded relevante Ports (8000 bzw. 8002).
-
 ### Services erreichbar unter
 
 | Service | Adresse |
@@ -212,13 +200,13 @@ Jede Definition setzt `PYTHONPATH` auf das Repo, installiert automatisch die jew
 
 Der Service ist absichtlich minimal gehalten und macht nur Ingestion:
 
-- `data_sources/`
+- `services/data_collector/data_sources/`
   - `mqtt_measurement_source.py`: liest Bytes aus MQTT
   - `playground_measurement_source.py`: erzeugt synthetische Bytes im Intervall
   - `i_measurement_source.py`: gemeinsames Source-Interface
-- `services/data_collector_service.py`
+- `services/data_collector/services/data_collector_service.py`
   - decodiert JSON, validiert gegen `SensorMeasurement`, ergänzt fehlende Metadaten
-- `infrastructure/processor_measurement_sender.py`
+- `services/data_collector/infrastructure/processor_measurement_sender.py`
   - sendet validierte Messungen via HTTP an `POST /measurements` im Processor
 
 ---
