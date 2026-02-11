@@ -132,20 +132,22 @@ PLAYGROUND_INTERVAL_SECONDS=5
 
 ### Starten
 
+`docker compose up --build` startet den kompletten Stack inklusive `ollama`.
+
 ```bash
 docker compose up --build
 ```
 
 ### Ollama vorbereiten
 
-Nach dem ersten Start muss das gewünschte Modell lokal geladen werden:
+Nur beim ersten Setup muss das gewünschte Modell einmal in den bereits laufenden `ollama`-Container geladen werden:
 
 ```bash
-docker compose up -d ollama
 docker compose exec ollama ollama pull llama3.1:8b
 ```
 
-Der AI-Service erreicht die lokale Instanz anschließend unter `http://ollama:11434`.
+`docker compose exec ...` funktioniert nur, wenn der Container bereits läuft.
+Der AI-Service erreicht die lokale Instanz unter `http://ollama:11434`.
 
 ### Services erreichbar unter
 
