@@ -97,6 +97,7 @@ DOCKER_INFLUXDB_INIT_TOKEN=climora-local-token
 ```bash
 AI_SERVICE_BASE_URL=http://ollama:11434
 AI_SERVICE_MODEL=llama3.2:1b
+AI_SERVICE_TIMEOUT_SECONDS=30
 ```
 
 ### Beispiel `services/processor/.env`
