@@ -15,6 +15,7 @@ class AIServiceSettings(BaseSettings):
 
     base_url: str | None = Field(default=None, env="AI_SERVICE_BASE_URL")
     model: str | None = Field(default="llama3.2:1b", env="AI_SERVICE_MODEL")
+    timeout_seconds: float = Field(default=30.0, env="AI_SERVICE_TIMEOUT_SECONDS")
 
 
 @lru_cache()
