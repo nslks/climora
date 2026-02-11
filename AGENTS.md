@@ -79,38 +79,6 @@ Dieses Dokument beschreibt die verbindliche Service-Struktur für alle Komponent
 - Einheitliche Benennungen, Logging und Fehlerbehandlung
 - Grundlage für Refactors und Code Reviews
 
-### Kanonische Ordnerstruktur
-
-```
-service_name/
-├── api/                    # FastAPI Router, Schemas, Error Handler
-│   ├── routes/
-│   ├── dependencies.py
-│   └── error_handlers.py
-├── application/            # App-Factories, Container, Lifecycles
-│   └── application.py
-├── domain/                 # Geschäftslogik, Interfaces, Value Objects
-│   ├── models/
-├── services/               # Orchestrierung + Validierung
-├── infrastructure/
-│   ├── clients/            # HTTP/MQTT/etc. Adapter
-│   └── repositories/       # Persistenzadapter, externes IO
-├── configuration/          # Settings, Pydantic Config, Secrets-Parsing
-├── exceptions.py           # Service-spezifische Basisausnahmen
-├── main.py                 # Entrypoint, lädt application factory
-├── requirements.txt
-```
-
-### Verantwortlichkeiten pro Layer
-
-- **API**: Request/Response-Schemas, HTTP-Statuscodes, Mapping von Exceptions → HTTP, Registrierung der Router.
-- **Application**: Lebenszyklus, Dependency-Injection, Wiring von Services, `FastAPI`-Instanzierung.
-- **Services**: Validierung, Business-Orchestrierung, Aufruf von Domain-Services/Repositories. Keine Framework-Abhängigkeiten.
-- **Domain**: Reine Geschäftslogik, Interfaces (z. B. `IRecommendationEngine`), Value Objects. Keine Infrastrukturimporte.
-- **Infrastructure**: Adapter zu externen Systemen (HTTP-Clients, Message-Broker, DB-Repos). Implementieren Domain-/Service-Interfaces.
-- **Configuration**: Pydantic-Settings, Laden von Environment-Variablen, zentraler Zugriff auf Secrets.
-- **Exceptions**: Gemeinsame Basisklassen, die API und Services verwenden, um Fehler eindeutig zu behandeln.
-
 ### Naming- und Code-Konventionen
 
 - **PEP8** konsequent einhalten (snake_case für Funktionen/Methoden, PascalCase für Klassen, keine Abkürzungen).
@@ -150,6 +118,30 @@ service_name/
 
 - Nach Abschluss der Refactors sollen neue Services dieses Blueprint als Vorlage übernehmen (z. B. durch Kopieren eines `service-template`-Ordners).
 - Weitere Verbesserungen (Observability-Modul, gemeinsame Error-Codes, CLI-Skripte) können in Folge-Issues spezifiziert werden.
+
+### Verbindlicher FastAPI-Standard (ab `ai_service`-Refactor)
+
+Für alle zukünftigen FastAPI-Services in diesem Repository gilt zusätzlich verbindlich dieses Muster:
+
+- **Dependency Injection über `Depends`**:
+  - Provider-Funktionen in `api/dependencies.py`
+  - Routen beziehen Services über `Depends(...)`
+  - Kein DI-Wiring über `app.state` für Business-Services
+- **Kein `@app.on_event("startup")` für Service-Wiring**:
+  - Startup nur für echte Lifecycle-Themen
+  - Service-/Client-Aufbau über Dependency-Provider (ggf. mit `@lru_cache`)
+- **Zentrale Fehlerbehandlung**:
+  - Exceptions in `exceptions.py`
+  - Mapping auf HTTP-Codes ausschließlich in `api/error_handlers.py`
+  - Registrierung zentral in `application/application.py` über `register_error_handlers(app)`
+- **Ordnerkonvention für diese FastAPI-Services**:
+  - `api/`, `application/`, `domain/`, `services/`, `configuration/`, `exceptions.py`, `main.py`
+  - Kein verpflichtender `infrastructure/`-Ordner für FastAPI-Services in diesem Projekt
+  - Konkrete technische Clients dürfen in `domain/` liegen, wenn sie über Interface abstrahiert sind
+- **Konfiguration pro Service**:
+  - Jeder Service besitzt eine eigene `.env`
+  - Root-`.env` enthält nur shared/infrastrukturbezogene Variablen
+  - Settings lesen Umgebungsvariablen, die vom Runtime-Environment (Compose) injiziert werden
 
 ## 9. Dokumentation
 
